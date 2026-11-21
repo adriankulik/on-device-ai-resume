@@ -72,6 +72,8 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   readonly addingCert = signal(false);
   readonly newCert = signal({ name: '', issuer: '', year: '' });
   readonly newSkill = signal('');
+  readonly categorySkillDrafts = signal<Record<string, string>>({});
+  readonly newSkillCategory = signal('');
   readonly editingSummary = signal(false);
   readonly summaryDraft = signal('');
   readonly editingRoleId = signal<string | null>(null);
@@ -424,13 +426,26 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
 
   /** Vault bullets of this role that are not currently on the resume. */
   availableVaultBullets(expId: string): { id: string; text: string }[] {
-    const sel = this.vs.selectedBulletIds();
     const exp = this.vs.vault().experience.find((x) => x.id === expId);
-    return exp ? exp.bullets.filter((b) => !sel.has(b.id)) : [];
+    if (!exp) return [];
+    const onResume = this.vs.selectedExperience().find((x) => x.id === expId);
+    const activeIds = new Set(onResume?.bullets.map((b) => b.id) ?? []);
+    const activeTexts = new Set(onResume?.bullets.map((b) => b.text.trim()) ?? []);
+    return exp.bullets.filter((b) => !activeIds.has(b.id) && !activeTexts.has(b.text.trim()));
   }
 
-  readdVaultBullet(bulletId: string): void {
-    if (bulletId) this.vs.toggleBullet(bulletId, true);
+  readdVaultBullet(expId: string, bulletId: string): void {
+    if (!bulletId) return;
+    const inResumeExp = this.vs.resumeOnlyExperience().some((e) => e.id === expId);
+    if (inResumeExp) {
+      const bullet = this.vs.vault().experience.find((x) => x.id === expId)?.bullets.find((b) => b.id === bulletId);
+      if (!bullet) return;
+      this.vs.resumeOnlyExperience.update((list) =>
+        list.map((e) => (e.id === expId ? { ...e, bullets: [...e.bullets, { ...bullet }] } : e)),
+      );
+      return;
+    }
+    this.vs.toggleBullet(bulletId, true);
   }
 
   removeResumeBullet(expId: string, bulletId: string): void {
@@ -442,7 +457,9 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
       }));
       return;
     }
-    const inResumeExp = this.vs.resumeOnlyExperience().some((e) => e.id === expId);
+    const inResumeExp = this.vs
+      .resumeOnlyExperience()
+      .some((e) => e.id === expId && e.bullets.some((b) => b.id === bulletId));
     if (inResumeExp) {
       this.vs.resumeOnlyExperience.update((list) =>
         list.map((e) => (e.id === expId ? { ...e, bullets: e.bullets.filter((b) => b.id !== bulletId) } : e)),
@@ -802,14 +819,82 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     });
   }
 
+  setCategorySkillDraft(category: string, value: string): void {
+    this.categorySkillDrafts.update((d) => ({ ...d, [category]: value }));
+  }
+
+  renameSkillCategory(oldName: string, rawNewName: string): void {
+    const newName = rawNewName.trim();
+    if (!newName || newName === oldName) return;
+    const grpSkills = this.categorizedSkills().find((g) => g.category === oldName)?.skills ?? [];
+    this.vs.update((v) => {
+      const cats = [...(v.skillCategories ?? [])];
+      const oldIdx = cats.findIndex((c) => c.category === oldName);
+      const existingNewIdx = cats.findIndex((c) => c.category.toLowerCase() === newName.toLowerCase());
+      const movedSkills = oldIdx >= 0 ? cats[oldIdx].skills : grpSkills;
+      if (oldIdx >= 0) cats.splice(oldIdx, 1);
+      const targetIdx = cats.findIndex((c) => c.category.toLowerCase() === newName.toLowerCase());
+      if (existingNewIdx >= 0 && targetIdx >= 0) {
+        cats[targetIdx] = {
+          ...cats[targetIdx],
+          skills: [...new Set([...cats[targetIdx].skills, ...movedSkills])],
+        };
+      } else {
+        const insertAt = oldIdx >= 0 ? Math.min(oldIdx, cats.length) : cats.length;
+        cats.splice(insertAt, 0, { category: newName, skills: [...movedSkills] });
+      }
+      v.skillCategories = cats;
+    });
+  }
+
+  addSkillCategory(): void {
+    const name = this.newSkillCategory().trim();
+    if (!name) return;
+    this.vs.update((v) => {
+      const cats = [...(v.skillCategories ?? [])];
+      if (!cats.some((c) => c.category.toLowerCase() === name.toLowerCase())) {
+        cats.push({ category: name, skills: [] });
+      }
+      v.skillCategories = cats;
+    });
+    this.newSkillCategory.set('');
+  }
+
+  addResumeSkillToCategory(category: string): void {
+    const skill = (this.categorySkillDrafts()[category] ?? '').trim();
+    if (!skill) return;
+    this.setCategorySkillDraft(category, '');
+    this.addResumeSkillValue(skill, category);
+  }
+
   addResumeSkill(): void {
     const skill = this.newSkill().trim();
     if (!skill) return;
+    this.newSkill.set('');
+    this.addResumeSkillValue(skill);
+  }
+
+  private addResumeSkillValue(skill: string, category?: string): void {
     const base = this.vs.tailoredSkills() ?? [...this.vs.vault().skills];
     if (!base.includes(skill)) {
       this.vs.tailoredSkills.set([...base, skill]);
     }
-    this.newSkill.set('');
+    if (category) {
+      this.vs.update((v) => {
+        if (!v.skills.includes(skill)) v.skills.push(skill);
+        const cats = [...(v.skillCategories ?? [])];
+        const idx = cats.findIndex((c) => c.category === category);
+        if (idx >= 0) {
+          if (!cats[idx].skills.includes(skill)) {
+            cats[idx] = { ...cats[idx], skills: [...cats[idx].skills, skill] };
+          }
+        } else {
+          cats.push({ category, skills: [skill] });
+        }
+        v.skillCategories = cats;
+      });
+      return;
+    }
 
     this.pendingVaultPrompt.set({
       label: 'skill',
