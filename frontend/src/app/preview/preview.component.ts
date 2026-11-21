@@ -870,11 +870,17 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
 
   saveCurrentSnapshot(updateActive = false): void {
     const targetId = updateActive ? this.activeSnapshotId() : null;
-    const saved = this.savedResumes.saveSnapshot(
-      this.snapshotNameDraft(),
-      this.captureCurrentSnapshot(),
-      targetId,
-    );
+    this.commitSnapshot(this.snapshotNameDraft(), targetId);
+  }
+
+  overwriteSavedSnapshot(item: SavedResumeSnapshot): void {
+    if (this.activeSnapshotId() && this.activeSnapshotId() !== item.id) return;
+    const name = this.activeSnapshotId() === item.id ? this.snapshotNameDraft().trim() || item.name : item.name;
+    this.commitSnapshot(name, item.id);
+  }
+
+  private commitSnapshot(name: string, targetId: string | null): void {
+    const saved = this.savedResumes.saveSnapshot(name, this.captureCurrentSnapshot(), targetId);
     this.activeSnapshotId.set(saved.id);
     this.snapshotNameDraft.set(saved.name);
     this.snapshotMsg.set({
