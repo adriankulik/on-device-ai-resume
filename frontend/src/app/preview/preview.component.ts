@@ -348,7 +348,11 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
       this.ext.openInNewTab('tab=preview&edit=1');
       return;
     }
-    this.editMode.update((v) => !v);
+    const saving = this.editMode();
+    this.editMode.set(!saving);
+    if (saving) {
+      this.autoSaveSnapshot();
+    }
   }
 
   confirmVaultPrompt(): void {
@@ -877,6 +881,17 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     if (this.activeSnapshotId() && this.activeSnapshotId() !== item.id) return;
     const name = this.activeSnapshotId() === item.id ? this.snapshotNameDraft().trim() || item.name : item.name;
     this.commitSnapshot(name, item.id);
+  }
+
+  private autoSaveSnapshot(): void {
+    const activeId = this.activeSnapshotId();
+    const active = activeId ? this.savedResumes.resumes().find((r) => r.id === activeId) : null;
+    const name =
+      active?.name ||
+      this.snapshotNameDraft().trim() ||
+      this.s().rodoCompanyName.trim() ||
+      this.contact().fullName.trim();
+    this.commitSnapshot(name, active ? active.id : null);
   }
 
   private commitSnapshot(name: string, targetId: string | null): void {
