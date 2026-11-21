@@ -569,16 +569,6 @@
                         </div>
                       </div>
                     }
-                    <div class="r-inline-add">
-                      <input
-                        type="text"
-                        placeholder="New category name…"
-                        [ngModel]="newSkillCategory()"
-                        (ngModelChange)="newSkillCategory.set($event)"
-                        (keydown.enter)="addSkillCategory()"
-                      />
-                      <button type="button" class="r-edit-btn" (click)="addSkillCategory()">+ Category</button>
-                    </div>
                   </div>
                 } @else {
                   @for (sk of skills(); track sk) {
@@ -598,6 +588,16 @@
                     <button type="button" class="r-edit-btn r-edit-btn--primary" (click)="addResumeSkill()">+ Add</button>
                   </div>
                 }
+                <div class="r-inline-add">
+                  <input
+                    type="text"
+                    placeholder="New category name…"
+                    [ngModel]="newSkillCategory()"
+                    (ngModelChange)="newSkillCategory.set($event)"
+                    (keydown.enter)="addSkillCategory()"
+                  />
+                  <button type="button" class="r-edit-btn" (click)="addSkillCategory()">+ Category</button>
+                </div>
               </div>
             } @else if (categorizedSkills().length) {
               <div class="r-skill-cats">
