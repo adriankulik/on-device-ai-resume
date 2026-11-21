@@ -726,6 +726,19 @@
     z-index: 4;
   }
 
+  .r-vault-select {
+    flex: 1;
+    min-width: 0;
+    max-width: 100%;
+    font: inherit;
+    font-size: 9pt;
+    padding: 1mm 2mm;
+    border: 1px dashed #94a3b8;
+    border-radius: 4px;
+    background: #fff;
+    color: #334155;
+  }
+
   .r-page-break {
     position: absolute;
     top: calc(297mm - 1px);

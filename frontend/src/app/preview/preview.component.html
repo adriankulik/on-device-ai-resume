@@ -399,6 +399,23 @@
                     />
                     <button type="button" class="r-edit-btn r-edit-btn--primary" (click)="addResumeBullet(e.id)">+ Add</button>
                   </div>
+                  @if (availableVaultBullets(e.id); as avail) {
+                    @if (avail.length) {
+                      <div class="r-inline-add no-print">
+                        <select
+                          class="r-vault-select"
+                          aria-label="Re-add bullet point from vault"
+                          (change)="readdVaultBullet(sel.value); sel.value = ''"
+                          #sel
+                        >
+                          <option value="">+ Re-add from vault ({{ avail.length }})…</option>
+                          @for (vb of avail; track vb.id) {
+                            <option [value]="vb.id">{{ vb.text.length > 90 ? vb.text.slice(0, 90) + '…' : vb.text }}</option>
+                          }
+                        </select>
+                      </div>
+                    }
+                  }
                 }
               </div>
             }
