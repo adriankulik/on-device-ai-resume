@@ -548,6 +548,14 @@
                             (change)="renameSkillCategory(grp.category, $any($event.target).value)"
                             (keydown.enter)="$any($event.target).blur()"
                           />
+                          <button
+                            type="button"
+                            class="r-edit-btn r-edit-btn--danger"
+                            [attr.aria-label]="'Delete category ' + grp.category"
+                            (click)="deleteSkillCategory(grp.category)"
+                          >
+                            Delete
+                          </button>
                         </div>
                         <div class="r-skill-cat-edit__chips">
                           @for (sk of grp.skills; track sk) {
