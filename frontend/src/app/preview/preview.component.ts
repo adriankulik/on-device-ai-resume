@@ -13,6 +13,7 @@ import {
   ResumeSnapshotData,
   SavedResumeSnapshot,
   SavedResumesService,
+  downloadJsonFile,
 } from '../core/saved-resumes.service';
 import { VaultService } from '../core/vault.service';
 import {
@@ -77,7 +78,7 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   readonly bulletEditDraft = signal('');
   readonly savedModalOpen = signal(false);
   readonly snapshotNameDraft = signal('');
-  readonly activeSnapshotId = signal<string | null>(null);
+  readonly activeSnapshotId = this.savedResumes.activeSnapshotId;
   readonly snapshotMsg = signal<{ ok: boolean; text: string } | null>(null);
 
   readonly s = this.vs.settings;
@@ -770,11 +771,11 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
 
   exportSingleSnapshot(item: SavedResumeSnapshot): void {
     const slug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'resume';
-    this.downloadJson(this.savedResumes.exportSingleJson(item.id), `${slug}.json`);
+    downloadJsonFile(this.doc, this.savedResumes.exportSingleJson(item.id), `${slug}.json`);
   }
 
   exportAllSnapshots(): void {
-    this.downloadJson(this.savedResumes.exportAllJson(), 'saved-resumes.json');
+    downloadJsonFile(this.doc, this.savedResumes.exportAllJson(), 'saved-resumes.json');
   }
 
   async importSnapshots(event: Event): Promise<void> {
@@ -796,16 +797,6 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     } finally {
       input.value = '';
     }
-  }
-
-  private downloadJson(content: string, filename: string): void {
-    const blob = new Blob([content], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = this.doc.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
   }
 }
 

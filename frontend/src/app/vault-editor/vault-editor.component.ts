@@ -1,8 +1,14 @@
+import { DOCUMENT } from '@angular/common';
 import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { StorageService } from '../core/storage.service';
 import { VaultService } from '../core/vault.service';
 import { AiService } from '../core/ai.service';
+import {
+  SavedResumeSnapshot,
+  SavedResumesService,
+  downloadJsonFile,
+} from '../core/saved-resumes.service';
 import { ButtonComponent } from '../button/button.component';
 import { ModalComponent } from '../modal/modal.component';
 import { CollapsibleComponent } from '../collapsible/collapsible.component';
@@ -30,7 +36,9 @@ const RAW_KEY = 'raw-resume-text';
 })
 export class VaultEditorComponent {
   readonly vs = inject(VaultService);
+  readonly savedResumes = inject(SavedResumesService);
   readonly ai = inject(AiService);
+  private readonly doc = inject(DOCUMENT);
   private readonly storage = inject(StorageService);
   readonly layout = inject(LayoutService);
   readonly ext = inject(ExtensionService);
@@ -196,5 +204,40 @@ export class VaultEditorComponent {
   private flash(kind: 'ok' | 'error', text: string): void {
     this.message.set({ kind, text });
     setTimeout(() => this.message.set(null), 6000);
+  }
+
+  loadPreviousResume(item: SavedResumeSnapshot): void {
+    this.vs.loadResumeSnapshot(item.snapshot);
+    this.savedResumes.activeSnapshotId.set(item.id);
+    this.layout.setActiveTab('preview');
+  }
+
+  exportSingleResume(item: SavedResumeSnapshot): void {
+    const slug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'resume';
+    downloadJsonFile(this.doc, this.savedResumes.exportSingleJson(item.id), `${slug}.json`);
+  }
+
+  exportAllResumes(): void {
+    downloadJsonFile(this.doc, this.savedResumes.exportAllJson(), 'saved-resumes.json');
+  }
+
+  async importResumes(ev: Event): Promise<void> {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    try {
+      const { added, updated } = this.savedResumes.importJson(await file.text());
+      this.flash('ok', `Imported ${added} new and updated ${updated} saved resume(s).`);
+    } catch {
+      this.flash('error', 'Invalid saved resumes JSON file.');
+    }
+  }
+
+  deletePreviousResume(id: string): void {
+    this.savedResumes.deleteSnapshot(id);
+    if (this.savedResumes.activeSnapshotId() === id) {
+      this.savedResumes.activeSnapshotId.set(null);
+    }
   }
 }

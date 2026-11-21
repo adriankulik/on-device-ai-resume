@@ -74,6 +74,7 @@ export class SavedResumesService {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly resumes = signal<SavedResumeSnapshot[]>([]);
+  readonly activeSnapshotId = signal<string | null>(null);
   readonly ready: Promise<void>;
   private lastSavedJson = '';
 
@@ -185,4 +186,14 @@ export class SavedResumesService {
     this.persist(current);
     return { added, updated };
   }
+}
+
+export function downloadJsonFile(doc: Document, content: string, filename: string): void {
+  const blob = new Blob([content], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = doc.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
