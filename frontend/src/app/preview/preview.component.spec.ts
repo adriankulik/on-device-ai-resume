@@ -268,7 +268,7 @@ describe('PreviewComponent', () => {
     expect(comp.pendingVaultPrompt()).toBeNull();
   });
 
-  it('shows A4 page break visualiser in edit mode only when 1-page enforcer is enabled', async () => {
+  it('always shows A4 page break visualiser even when 1-page enforcer is disabled', async () => {
     await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
     const fixture = TestBed.createComponent(PreviewComponent);
     const comp = fixture.componentInstance;
@@ -276,7 +276,8 @@ describe('PreviewComponent', () => {
     await vs.ready;
 
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('.r-page-break')).toBeNull();
+    fixture.detectChanges();
+    expect(el.querySelector('.r-page-break')).toBeTruthy();
 
     comp.editMode.set(true);
     comp.set('strictOnePage', true);
@@ -285,7 +286,7 @@ describe('PreviewComponent', () => {
 
     comp.set('strictOnePage', false);
     fixture.detectChanges();
-    expect(el.querySelector('.r-page-break')).toBeNull();
+    expect(el.querySelector('.r-page-break')).toBeTruthy();
   });
 
   it('shifts page-break limit down and excludes editor-only controls from overflow in edit mode', async () => {
