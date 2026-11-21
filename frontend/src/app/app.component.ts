@@ -1,5 +1,5 @@
 import { DOCUMENT } from '@angular/common';
-import { Component, ElementRef, OnInit, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { LucideCheck, LucideChevronsRight, LucideDynamicIcon, LucideInfo } from '@lucide/angular';
 import { ButtonComponent } from './button/button.component';
 import { LayoutService, WorkspaceTab } from './core/layout.service';
@@ -51,6 +51,23 @@ export class AppComponent implements OnInit {
   readonly aboutOpen = signal(false);
   readonly backupOpen = signal(false);
   readonly backupMsg = signal<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  readonly vaultSummary = computed(() => {
+    const v = this.vs.vault();
+    const hasData = Boolean(
+      v.contact.fullName.trim() ||
+        v.summary.trim() ||
+        v.experience.length ||
+        v.skills.length ||
+        v.education.length ||
+        v.certifications.length,
+    );
+    return {
+      hasData,
+      name: v.contact.fullName.trim(),
+      rolesCount: v.experience.length,
+      skillsCount: v.skills.length,
+    };
+  });
   readonly headerImportInput = viewChild<ElementRef<HTMLInputElement>>('headerImportInput');
 
   exportAll(): void {

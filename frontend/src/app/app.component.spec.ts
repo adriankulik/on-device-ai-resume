@@ -57,7 +57,7 @@ describe('AppComponent', () => {
     const el = fixture.nativeElement as HTMLElement;
 
     const aboutBtn = Array.from(el.querySelectorAll('.header-controls button')).find(
-      (b) => b.textContent?.trim().includes('About'),
+      (b) => b.getAttribute('aria-label')?.includes('About'),
     ) as HTMLButtonElement;
     expect(aboutBtn).toBeTruthy();
     expect(comp.aboutOpen()).toBeFalse();

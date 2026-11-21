@@ -568,3 +568,38 @@ fieldset.role {
   gap: v.$sp-1;
   flex-shrink: 0;
 }
+
+.backup-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--c-rule);
+  border-radius: 8px;
+  background: var(--c-chip-bg);
+  font-size: 13px;
+
+  &__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: baseline;
+  }
+
+  &__ok {
+    color: var(--c-status-ok-ink);
+    font-weight: 500;
+  }
+
+  &__resumes {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__list {
+    margin: 0;
+    padding-left: 18px;
+  }
+}
