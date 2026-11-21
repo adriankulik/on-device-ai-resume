@@ -111,4 +111,69 @@ describe('VaultService persistence', () => {
     expect(vs.selectedBulletIds().has('b_1')).toBeTrue();
     expect(vs.selectedBulletIds().has('b_2')).toBeFalse();
   });
+
+  it('clears stale tailored skills and categories on importJson and restores snapshot categories without mutating vault', async () => {
+    const vs = TestBed.inject(VaultService);
+    await tick();
+
+    vs.tailoredSkills.set(['OldSkill']);
+    vs.tailoredSkillCategories.set([{ category: 'OldCat', skills: ['OldSkill'] }]);
+
+    vs.importJson(
+      JSON.stringify({
+        skills: ['Angular', 'Docker'],
+        skillCategories: [
+          { category: 'Frontend', skills: ['Angular'] },
+          { category: 'Cloud', skills: ['Docker'] },
+        ],
+      }),
+    );
+    expect(vs.tailoredSkills()).toBeNull();
+    expect(vs.tailoredSkillCategories()).toBeNull();
+
+    vs.loadResumeSnapshot({
+      contact: vs.vault().contact,
+      summary: 'Snap summary',
+      experience: [],
+      education: [],
+      certifications: [],
+      skills: ['Python', 'PyTorch'],
+      skillCategories: [{ category: 'AI', skills: ['Python', 'PyTorch'] }],
+      settings: vs.vault().settings,
+    });
+    expect(vs.tailoredSkills()).toEqual(['Python', 'PyTorch']);
+    expect(vs.tailoredSkillCategories()).toEqual([{ category: 'AI', skills: ['Python', 'PyTorch'] }]);
+    expect(vs.vault().skillCategories.map((c) => c.category)).toEqual(['Frontend', 'Cloud']);
+
+    // Snapshot with empty skillCategories stays uncategorized instead of borrowing Master Vault categories
+    vs.loadResumeSnapshot({
+      contact: vs.vault().contact,
+      summary: 'Flat snap',
+      experience: [],
+      education: [],
+      certifications: [],
+      skills: ['Go'],
+      skillCategories: [],
+      settings: vs.vault().settings,
+    });
+    expect(vs.tailoredSkillCategories()).toEqual([]);
+  });
+
+  it('does not bounce incoming external storage changes back to storage', async () => {
+    const vs = TestBed.inject(VaultService);
+    await tick();
+
+    const setSpy = spyOn(localStorage, 'setItem').and.callThrough();
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: KEY,
+        newValue: JSON.stringify({ summary: 'External update' }),
+      }),
+    );
+    TestBed.tick();
+    await tick();
+
+    expect(vs.vault().summary).toBe('External update');
+    expect(setSpy.calls.allArgs().filter(([k]) => k === KEY).length).toBe(0);
+  });
 });

@@ -108,6 +108,7 @@ export class TriageComponent {
     this.aiAddedSkills.set([]);
     this.vs.tailoredSummary.set(null);
     this.vs.tailoredSkills.set(null);
+    this.vs.tailoredSkillCategories.set(null);
     this.vs.selectAll();
     this.layout.unmarkStepCompleted('triage');
     this.layout.unmarkStepCompleted('preview');

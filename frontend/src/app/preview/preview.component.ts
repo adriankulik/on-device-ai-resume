@@ -23,6 +23,7 @@ import {
   PAPER_SIZES,
   groupSkillsByCategory,
   PaperSizeId,
+  SkillCategory,
   THEMES,
   ThemeName,
   UNIT_SYSTEMS,
@@ -180,9 +181,12 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
 
   readonly summary = computed(() => (this.vs.hiddenSummary() ? '' : (this.vs.tailoredSummary() ?? this.vs.vault().summary)));
   readonly skills = computed(() => this.vs.tailoredSkills() ?? this.vs.vault().skills);
-  readonly categorizedSkills = computed(() => groupSkillsByCategory(this.skills(), this.vs.vault().skillCategories ?? []));
+  readonly activeSkillCategories = computed(
+    () => this.vs.tailoredSkillCategories() ?? this.vs.vault().skillCategories ?? [],
+  );
+  readonly categorizedSkills = computed(() => groupSkillsByCategory(this.skills(), this.activeSkillCategories()));
   readonly editSkillCategories = computed(() =>
-    groupSkillsByCategory(this.skills(), this.vs.vault().skillCategories ?? [], true),
+    groupSkillsByCategory(this.skills(), this.activeSkillCategories(), true),
   );
 
   /** Contact details split into email/phone/location and web links */
@@ -383,6 +387,9 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
       return;
     }
     const saving = this.editMode();
+    if (saving) {
+      this.flushSkillDrafts();
+    }
     this.editMode.set(!saving);
     if (saving) {
       this.autoSaveSnapshot();
@@ -849,6 +856,31 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     });
   }
 
+  private flushSkillDrafts(): void {
+    if (this.newSkillCategory().trim()) {
+      this.addSkillCategory();
+    }
+    for (const [cat, draft] of Object.entries(this.categorySkillDrafts())) {
+      if (draft.trim()) {
+        this.addResumeSkillToCategory(cat);
+      }
+    }
+    if (this.newSkill().trim()) {
+      this.addResumeSkill();
+    }
+  }
+
+  private updateSkillCategories(fn: (cats: SkillCategory[]) => SkillCategory[]): void {
+    const tailoredCats = this.vs.tailoredSkillCategories();
+    if (tailoredCats !== null) {
+      this.vs.tailoredSkillCategories.set(fn(structuredClone(tailoredCats)));
+      return;
+    }
+    this.vs.update((v) => {
+      v.skillCategories = fn([...(v.skillCategories ?? [])]);
+    });
+  }
+
   setCategorySkillDraft(category: string, value: string): void {
     this.categorySkillDrafts.update((d) => ({ ...d, [category]: value }));
   }
@@ -856,9 +888,8 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   renameSkillCategory(oldName: string, rawNewName: string): void {
     const newName = rawNewName.trim();
     if (!newName || newName === oldName) return;
-    const grpSkills = this.categorizedSkills().find((g) => g.category === oldName)?.skills ?? [];
-    this.vs.update((v) => {
-      const cats = [...(v.skillCategories ?? [])];
+    const grpSkills = this.editSkillCategories().find((g) => g.category === oldName)?.skills ?? [];
+    this.updateSkillCategories((cats) => {
       const oldIdx = cats.findIndex((c) => c.category === oldName);
       const existingNewIdx = cats.findIndex((c) => c.category.toLowerCase() === newName.toLowerCase());
       const movedSkills = oldIdx >= 0 ? cats[oldIdx].skills : grpSkills;
@@ -873,8 +904,17 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
         const insertAt = oldIdx >= 0 ? Math.min(oldIdx, cats.length) : cats.length;
         cats.splice(insertAt, 0, { category: newName, skills: [...movedSkills] });
       }
-      v.skillCategories = cats;
+      return cats;
     });
+    const pendingDraft = this.categorySkillDrafts()[oldName];
+    if (pendingDraft !== undefined) {
+      this.categorySkillDrafts.update((d) => {
+        const copy = { ...d };
+        delete copy[oldName];
+        if (!copy[newName]) copy[newName] = pendingDraft;
+        return copy;
+      });
+    }
   }
 
   deleteSkillCategory(category: string): void {
@@ -885,20 +925,17 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
       const base = this.vs.tailoredSkills() ?? [...this.vs.vault().skills];
       this.vs.tailoredSkills.set(base.filter((sk) => !grpSkills.has(sk)));
     }
-    this.vs.update((v) => {
-      v.skillCategories = (v.skillCategories ?? []).filter((c) => c.category !== category);
-    });
+    this.updateSkillCategories((cats) => cats.filter((c) => c.category !== category));
   }
 
   addSkillCategory(): void {
     const name = this.newSkillCategory().trim();
     if (!name) return;
-    this.vs.update((v) => {
-      const cats = [...(v.skillCategories ?? [])];
+    this.updateSkillCategories((cats) => {
       if (!cats.some((c) => c.category.toLowerCase() === name.toLowerCase())) {
         cats.push({ category: name, skills: [] });
       }
-      v.skillCategories = cats;
+      return cats;
     });
     this.newSkillCategory.set('');
   }
@@ -918,27 +955,43 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   }
 
   private addResumeSkillValue(skill: string, category?: string): void {
-    const base = this.vs.tailoredSkills() ?? [...this.vs.vault().skills];
-    if (!base.includes(skill)) {
-      this.vs.tailoredSkills.set([...base, skill]);
+    const tailored = this.vs.tailoredSkills();
+    if (tailored !== null && !tailored.includes(skill)) {
+      this.vs.tailoredSkills.set([...tailored, skill]);
     }
     if (category) {
-      this.vs.update((v) => {
-        if (!v.skills.includes(skill)) v.skills.push(skill);
-        const cats = [...(v.skillCategories ?? [])];
-        const idx = cats.findIndex((c) => c.category === category);
+      const existingVisible = this.editSkillCategories().find((g) => g.category === category)?.skills ?? [];
+      const inSnapshotMode = this.vs.tailoredSkillCategories() !== null;
+      if (inSnapshotMode && tailored === null) {
+        const base = [...this.vs.vault().skills];
+        if (!base.includes(skill)) this.vs.tailoredSkills.set([...base, skill]);
+      }
+      this.updateSkillCategories((cats) => {
+        const next = cats.map((c) =>
+          c.category === category ? c : { ...c, skills: c.skills.filter((s) => s !== skill) },
+        );
+        const idx = next.findIndex((c) => c.category === category);
         if (idx >= 0) {
-          if (!cats[idx].skills.includes(skill)) {
-            cats[idx] = { ...cats[idx], skills: [...cats[idx].skills, skill] };
+          if (!next[idx].skills.includes(skill)) {
+            next[idx] = { ...next[idx], skills: [...next[idx].skills, skill] };
           }
         } else {
-          cats.push({ category, skills: [skill] });
+          next.push({ category, skills: [...new Set([...existingVisible, skill])] });
         }
-        v.skillCategories = cats;
+        return next;
       });
+      if (!inSnapshotMode) {
+        this.vs.update((v) => {
+          if (!v.skills.includes(skill)) v.skills.push(skill);
+        });
+      }
       return;
     }
 
+    const base = tailored ?? [...this.vs.vault().skills];
+    if (!base.includes(skill)) {
+      this.vs.tailoredSkills.set([...base, skill]);
+    }
     this.pendingVaultPrompt.set({
       label: 'skill',
       commit: () => {
@@ -1026,6 +1079,7 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
       education: this.vs.visibleEducation(),
       certifications: this.vs.visibleCertifications(),
       skills: this.skills(),
+      skillCategories: this.categorizedSkills(),
       settings: this.s(),
     });
   }

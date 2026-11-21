@@ -6,7 +6,7 @@ import { VaultService } from '../core/vault.service';
 import { AiService } from '../core/ai.service';
 import { SavedResumeSnapshot, SavedResumesService } from '../core/saved-resumes.service';
 import { exportVaultBackup, importVaultBackupText } from '../core/backup.util';
-import { formatCategorizedSkillsText, parseCategorizedSkillsText } from '../core/vault.model';
+import { formatCategorizedSkillsText, groupSkillsByCategory, parseCategorizedSkillsText } from '../core/vault.model';
 import { ButtonComponent } from '../button/button.component';
 import { ModalComponent } from '../modal/modal.component';
 import { CollapsibleComponent } from '../collapsible/collapsible.component';
@@ -79,12 +79,14 @@ export class VaultEditorComponent {
   }
 
   readonly formatSkills = formatCategorizedSkillsText;
+  readonly groupSkills = groupSkillsByCategory;
 
   setSkills(value: string): void {
     const parsed = parseCategorizedSkillsText(value);
     this.vs.vault().skills = parsed.skills;
     this.vs.vault().skillCategories = parsed.skillCategories;
     this.vs.tailoredSkills.set(null);
+    this.vs.tailoredSkillCategories.set(null);
     this.vs.touch();
   }
 

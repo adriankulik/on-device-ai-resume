@@ -22,6 +22,7 @@ function sampleSnapshot(summary = 'Tailored summary'): ResumeSnapshotData {
     education: [],
     certifications: [],
     skills: ['Angular', 'TypeScript'],
+    skillCategories: [{ category: 'Frontend', skills: ['Angular', 'TypeScript'] }],
     settings: v.settings,
   };
 }
@@ -68,5 +69,8 @@ describe('SavedResumesService', () => {
     const allResult = svc.importJson(allJson);
     expect(allResult).toEqual({ added: 1, updated: 1 });
     expect(svc.resumes().length).toBe(2);
+    expect(svc.resumes()[0].snapshot.skillCategories).toEqual([
+      { category: 'Frontend', skills: ['Angular', 'TypeScript'] },
+    ]);
   });
 });

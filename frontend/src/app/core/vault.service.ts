@@ -1,6 +1,6 @@
 import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angular/core';
 import { StorageService } from './storage.service';
-import { Bullet, Certification, Contact, Education, Experience, MasterVault, emptyVault, normalizeVault, nextId } from './vault.model';
+import { Bullet, Certification, Contact, Education, Experience, MasterVault, SkillCategory, emptyVault, normalizeVault, nextId } from './vault.model';
 import type { ResumeSnapshotData } from './saved-resumes.service';
 
 const VAULT_KEY = 'master-vault';
@@ -11,6 +11,7 @@ interface SavedTailoredState {
   selectedBulletIds?: string[];
   tailoredSummary?: string | null;
   tailoredSkills?: string[] | null;
+  tailoredSkillCategories?: SkillCategory[] | null;
   resumeOnlyBullets?: Record<string, Bullet[]>;
   resumeBulletOverrides?: Record<string, string>;
   resumeOnlyExperience?: Experience[];
@@ -39,6 +40,8 @@ export class VaultService {
   readonly tailoredSummary = signal<string | null>(null);
   /** Skills ordered/selected for the current job description; overrides the vault skills in the preview. */
   readonly tailoredSkills = signal<string[] | null>(null);
+  /** Skill categories for a loaded snapshot/tailored view; null falls back to vault.skillCategories. */
+  readonly tailoredSkillCategories = signal<SkillCategory[] | null>(null);
 
   /** Resume-only additions & visibility overrides (keeps Master Vault untouched unless promoted). */
   readonly resumeOnlyBullets = signal<Record<string, Bullet[]>>({});
@@ -56,7 +59,6 @@ export class VaultService {
   private readonly destroyRef = inject(DestroyRef);
   private readonly lastSavedJson = new Map<string, string>();
   private cleared = false;
-  private syncingExternal = false;
 
   constructor() {
     this.ready = this.init();
@@ -65,7 +67,7 @@ export class VaultService {
 
     effect(() => {
       const v = this.vault();
-      if (this.loaded() && !this.pristine() && !this.syncingExternal) {
+      if (this.loaded() && !this.pristine()) {
         this.persistKey(VAULT_KEY, v);
       }
     });
@@ -74,6 +76,7 @@ export class VaultService {
         selectedBulletIds: Array.from(this.selectedBulletIds()),
         tailoredSummary: this.tailoredSummary(),
         tailoredSkills: this.tailoredSkills(),
+        tailoredSkillCategories: this.tailoredSkillCategories(),
         resumeOnlyBullets: this.resumeOnlyBullets(),
         resumeBulletOverrides: this.resumeBulletOverrides(),
         resumeOnlyExperience: this.resumeOnlyExperience(),
@@ -84,7 +87,7 @@ export class VaultService {
         hiddenSummary: this.hiddenSummary(),
         snapshotContact: this.snapshotContact(),
       };
-      if (this.loaded() && !this.pristine() && !this.syncingExternal) {
+      if (this.loaded() && !this.pristine()) {
         this.persistKey(TAILORED_STATE_KEY, payload);
       }
     });
@@ -92,7 +95,9 @@ export class VaultService {
 
   private persistKey(key: string, value: unknown): void {
     try {
-      this.lastSavedJson.set(key, JSON.stringify(value));
+      const json = JSON.stringify(value);
+      if (this.lastSavedJson.get(key) === json) return;
+      this.lastSavedJson.set(key, json);
     } catch {
       // Ignore serialization errors when caching last-written JSON
     }
@@ -104,23 +109,21 @@ export class VaultService {
     if (this.lastSavedJson.get(key) === incomingJson) return;
     this.lastSavedJson.set(key, incomingJson);
 
-    this.syncingExternal = true;
-    try {
-      if (key === VAULT_KEY) {
-        if (newValue) {
-          this.setVault(normalizeVault(newValue), false);
-        } else {
-          this.vault.set(emptyVault());
-          this.pristine.set(true);
-          this.selectedBulletIds.set(new Set());
-        }
-      } else if (key === ONBOARDED_KEY) {
-        this.onboarded.set(Boolean(newValue));
-      } else if (key === TAILORED_STATE_KEY) {
-        this.applyTailoredState((newValue ?? {}) as SavedTailoredState);
+    if (key === VAULT_KEY) {
+      if (newValue) {
+        const normalized = normalizeVault(newValue);
+        // Cache normalized JSON so the async persistence effect does not bounce the incoming change back.
+        this.lastSavedJson.set(VAULT_KEY, JSON.stringify(normalized));
+        this.setVault(normalized, false);
+      } else {
+        this.vault.set(emptyVault());
+        this.pristine.set(true);
+        this.selectedBulletIds.set(new Set());
       }
-    } finally {
-      this.syncingExternal = false;
+    } else if (key === ONBOARDED_KEY) {
+      this.onboarded.set(Boolean(newValue));
+    } else if (key === TAILORED_STATE_KEY) {
+      this.applyTailoredState((newValue ?? {}) as SavedTailoredState);
     }
   }
 
@@ -133,6 +136,11 @@ export class VaultService {
     }
     if (tailored.tailoredSkills !== undefined) {
       this.tailoredSkills.set(Array.isArray(tailored.tailoredSkills) ? tailored.tailoredSkills : null);
+    }
+    if (tailored.tailoredSkillCategories !== undefined) {
+      this.tailoredSkillCategories.set(
+        Array.isArray(tailored.tailoredSkillCategories) ? tailored.tailoredSkillCategories : null,
+      );
     }
     if (tailored.resumeOnlyBullets && typeof tailored.resumeOnlyBullets === 'object') {
       this.resumeOnlyBullets.set(tailored.resumeOnlyBullets);
@@ -216,8 +224,10 @@ export class VaultService {
   setVault(v: MasterVault, selectAllBullets = false): void {
     this.pristine.set(false);
     this.vault.set(v);
-    if (selectAllBullets) this.selectAll();
-    else {
+    if (selectAllBullets) {
+      this.resetTailoredState();
+      this.selectAll();
+    } else {
       const ids = new Set(this.allBulletIds());
       this.selectedBulletIds.update((s) => new Set([...s].filter((i) => ids.has(i))));
     }
@@ -353,6 +363,9 @@ export class VaultService {
     this.tailoredSummary.set(snap.summary);
     this.hiddenSummary.set(!snap.summary);
     this.tailoredSkills.set([...snap.skills]);
+    this.tailoredSkillCategories.set(
+      Array.isArray(snap.skillCategories) ? structuredClone(snap.skillCategories) : [],
+    );
     this.snapshotContact.set(structuredClone(snap.contact));
     this.update((draft) => {
       draft.settings = normalizeVault({ settings: snap.settings }).settings;
@@ -360,16 +373,23 @@ export class VaultService {
   }
 
   /** Backup */
-  exportJson(): string {
-    return JSON.stringify(this.vault(), null, 2);
-  }
-
   importJson(text: string): void {
     this.setVault(normalizeVault(JSON.parse(text)), true);
   }
 
-  async clearStorage(): Promise<void> {
-    await this.storage.delete(VAULT_KEY);
+  private resetTailoredState(): void {
+    this.tailoredSummary.set(null);
+    this.tailoredSkills.set(null);
+    this.tailoredSkillCategories.set(null);
+    this.resumeOnlyBullets.set({});
+    this.resumeBulletOverrides.set({});
+    this.resumeOnlyExperience.set([]);
+    this.resumeOnlyEducation.set([]);
+    this.hiddenEducationIds.set(new Set());
+    this.resumeOnlyCertifications.set([]);
+    this.hiddenCertificationIds.set(new Set());
+    this.hiddenSummary.set(false);
+    this.snapshotContact.set(null);
   }
 
   async clearAllData(): Promise<void> {
@@ -380,17 +400,7 @@ export class VaultService {
     this.vault.set(emptyVault());
     this.onboarded.set(false);
     this.selectedBulletIds.set(new Set());
-    this.tailoredSummary.set(null);
-    this.tailoredSkills.set(null);
-    this.resumeOnlyBullets.set({});
-    this.resumeBulletOverrides.set({});
-    this.resumeOnlyExperience.set([]);
-    this.resumeOnlyEducation.set([]);
-    this.hiddenEducationIds.set(new Set());
-    this.resumeOnlyCertifications.set([]);
-    this.hiddenCertificationIds.set(new Set());
-    this.hiddenSummary.set(false);
-    this.snapshotContact.set(null);
+    this.resetTailoredState();
   }
 }
 

@@ -535,7 +535,7 @@
             <h2 class="r-section__head"><span>Skills</span></h2>
             @if (editMode()) {
               <div class="r-skills-edit no-print">
-                @if (categorizedSkills().length || (vs.vault().skillCategories.length)) {
+                @if (categorizedSkills().length || activeSkillCategories().length) {
                   <div class="r-skills-cats-edit">
                     @for (grp of editSkillCategories(); track grp.category) {
                       <div class="r-skill-cat-edit">

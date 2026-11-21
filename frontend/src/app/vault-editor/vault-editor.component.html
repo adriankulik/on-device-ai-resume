@@ -149,8 +149,9 @@
     </div>
     <hr class="divider" aria-hidden="true" />
     <div class="card-body">
-      @if (v.skillCategories.length) {
-        @for (grp of v.skillCategories; track grp.category) {
+      @let skillGroups = groupSkills(v.skills, v.skillCategories, true);
+      @if (skillGroups.length) {
+        @for (grp of skillGroups; track grp.category) {
           <p class="summary-text"><strong>{{ grp.category }}:</strong> {{ grp.skills.join(', ') }}</p>
         }
       } @else {

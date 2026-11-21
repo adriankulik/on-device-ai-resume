@@ -168,14 +168,15 @@ export function normalizeVault(raw: unknown): MasterVault {
   };
   base.summary = str(r['summary']);
   const rawCats = Array.isArray(r['skillCategories']) ? r['skillCategories'] : [];
-  base.skillCategories = rawCats
-    .map((c: unknown) => {
+  base.skillCategories = dedupeSkillCategories(
+    rawCats.map((c: unknown) => {
       const rec = (c ?? {}) as Record<string, unknown>;
-      const category = str(rec['category']).trim();
-      const skills = [...new Set(strArr(rec['skills']))];
-      return { category, skills };
-    })
-    .filter((c) => c.category && c.skills.length > 0);
+      return {
+        category: str(rec['category']),
+        skills: strArr(rec['skills']),
+      };
+    }),
+  );
   const flat = strArr(r['skills']);
   const fromCats = base.skillCategories.flatMap((c) => c.skills);
   base.skills = [...new Set([...flat, ...fromCats])];
@@ -309,10 +310,35 @@ export function groupSkillsByCategory(
   return result;
 }
 
+/** Merges case-insensitive duplicate skill categories while keeping empty ones and deduplicating skills. */
+export function dedupeSkillCategories(categories: SkillCategory[]): SkillCategory[] {
+  const result: SkillCategory[] = [];
+  const byLower = new Map<string, SkillCategory>();
+  for (const grp of categories) {
+    const category = grp.category.trim();
+    if (!category) continue;
+    const key = category.toLowerCase();
+    const cleaned = grp.skills.map((s) => s.trim()).filter(Boolean);
+    const existing = byLower.get(key);
+    if (existing) {
+      for (const sk of cleaned) {
+        if (!existing.skills.includes(sk)) existing.skills.push(sk);
+      }
+    } else {
+      const entry: SkillCategory = { category, skills: [...new Set(cleaned)] };
+      byLower.set(key, entry);
+      result.push(entry);
+    }
+  }
+  return result;
+}
+
 /** Formats categorized skills as `Category: a, b` lines, or comma-separated when uncategorized. */
 export function formatCategorizedSkillsText(skills: string[], categories: SkillCategory[]): string {
   if (categories.length) {
-    return categories.map((c) => `${c.category}: ${c.skills.join(', ')}`).join('\n');
+    return groupSkillsByCategory(skills, categories, true)
+      .map((c) => `${c.category}: ${c.skills.join(', ')}`)
+      .join('\n');
   }
   return skills.join(', ');
 }
@@ -325,18 +351,19 @@ export function parseCategorizedSkillsText(raw: string): { skills: string[]; ski
     const skills = [...new Set(raw.split(',').map((x) => x.trim()).filter(Boolean))];
     return { skills, skillCategories: skills.length ? categorizeSkillsHeuristic(skills) : [] };
   }
-  const skillCategories: SkillCategory[] = [];
+  const rawCategories: SkillCategory[] = [];
   for (const line of lines) {
     const idx = line.indexOf(':');
     if (idx > 0) {
       const category = line.slice(0, idx).trim();
       const items = [...new Set(line.slice(idx + 1).split(',').map((x) => x.trim()).filter(Boolean))];
-      if (category && items.length) skillCategories.push({ category, skills: items });
+      if (category && items.length) rawCategories.push({ category, skills: items });
     } else {
       const items = [...new Set(line.split(',').map((x) => x.trim()).filter(Boolean))];
-      if (items.length) skillCategories.push({ category: 'Other', skills: items });
+      if (items.length) rawCategories.push({ category: 'Other', skills: items });
     }
   }
+  const skillCategories = dedupeSkillCategories(rawCategories);
   const skills = [...new Set(skillCategories.flatMap((c) => c.skills))];
   return { skills, skillCategories };
 }

@@ -1,5 +1,5 @@
 import { extractKeywords, fallbackTriage, keywordStatus, textHasKeyword } from './keyword-matcher';
-import { MasterVault, emptyVault, nextId, normalizeVault } from './vault.model';
+import { MasterVault, emptyVault, formatCategorizedSkillsText, nextId, normalizeVault, parseCategorizedSkillsText } from './vault.model';
 import { parseMarkdownLinks } from './rich-text';
 
 function testVault(): MasterVault {
@@ -81,6 +81,28 @@ describe('vault model', () => {
     const v = testVault();
     expect(nextId(v, 'b')).toBe('b_104');
     expect(nextId(v, 'exp')).toBe('exp_3');
+  });
+
+  it('keeps empty skill categories, merges duplicate category names, and preserves uncategorized skills', () => {
+    const v = normalizeVault({
+      skills: ['Docker'],
+      skillCategories: [
+        { category: 'Frontend', skills: ['Angular'] },
+        { category: 'frontend', skills: ['TypeScript'] },
+        { category: 'AI', skills: [] },
+      ],
+    });
+    expect(v.skillCategories).toEqual([
+      { category: 'Frontend', skills: ['Angular', 'TypeScript'] },
+      { category: 'AI', skills: [] },
+    ]);
+    expect(formatCategorizedSkillsText(v.skills, v.skillCategories)).toBe(
+      'Frontend: Angular, TypeScript\nAI: \nOther: Docker',
+    );
+
+    const parsed = parseCategorizedSkillsText('Cloud: AWS\ncloud: GCP, AWS');
+    expect(parsed.skillCategories).toEqual([{ category: 'Cloud', skills: ['AWS', 'GCP'] }]);
+    expect(parsed.skills).toEqual(['AWS', 'GCP']);
   });
 });
 
