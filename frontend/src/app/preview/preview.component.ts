@@ -4,10 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { LucideArrowDown, LucideArrowUp, LucideCheck, LucideDynamicIcon, LucideFileDown, LucidePencil, LucidePlus, LucideTrash2, LucideX } from '@lucide/angular';
 import { CollapsibleComponent } from '../collapsible/collapsible.component';
 import { DropdownComponent } from '../dropdown/dropdown.component';
+import { ModalComponent } from '../modal/modal.component';
 import { ToggleComponent } from '../toggle/toggle.component';
 import { ButtonComponent } from '../button/button.component';
 import { ExtensionService } from '../core/extension.service';
 import { LayoutService } from '../core/layout.service';
+import {
+  ResumeSnapshotData,
+  SavedResumeSnapshot,
+  SavedResumesService,
+} from '../core/saved-resumes.service';
 import { VaultService } from '../core/vault.service';
 import {
   Experience,
@@ -29,11 +35,12 @@ const MM_PX = 96 / 25.4;
 @Component({
   selector: 'app-preview',
   standalone: true,
-  imports: [FormsModule, DropdownComponent, ToggleComponent, CollapsibleComponent, ButtonComponent, LucideDynamicIcon, RichTextComponent],
+  imports: [FormsModule, DropdownComponent, ToggleComponent, CollapsibleComponent, ModalComponent, ButtonComponent, LucideDynamicIcon, RichTextComponent],
   templateUrl: './preview.component.html',
 })
 export class PreviewComponent implements AfterViewInit, OnDestroy {
   readonly vs = inject(VaultService);
+  readonly savedResumes = inject(SavedResumesService);
   private readonly doc = inject(DOCUMENT);
   readonly themes = THEMES;
   readonly unitSystems = UNIT_SYSTEMS;
@@ -68,6 +75,10 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   readonly roleDraft = signal({ role: '', company: '', startDate: '', endDate: '' });
   readonly editingBullet = signal<{ expId: string; bulletId: string } | null>(null);
   readonly bulletEditDraft = signal('');
+  readonly savedModalOpen = signal(false);
+  readonly snapshotNameDraft = signal('');
+  readonly activeSnapshotId = signal<string | null>(null);
+  readonly snapshotMsg = signal<{ ok: boolean; text: string } | null>(null);
 
   readonly s = this.vs.settings;
   readonly paperSpec = computed(() => PAPER_SIZES[this.s().paperSize] ?? PAPER_SIZES.a4);
@@ -122,32 +133,33 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  readonly showPhoto = computed(() => this.s().showPhoto && !!this.vs.vault().contact.photoDataUrl);
+  readonly contact = computed(() => this.vs.snapshotContact() ?? this.vs.vault().contact);
+  readonly showPhoto = computed(() => this.s().showPhoto && !!this.contact().photoDataUrl);
 
   readonly summary = computed(() => (this.vs.hiddenSummary() ? '' : (this.vs.tailoredSummary() ?? this.vs.vault().summary)));
   readonly skills = computed(() => this.vs.tailoredSkills() ?? this.vs.vault().skills);
 
   /** Contact details split into email/phone/location and web links */
   readonly emailLink = computed(() => {
-    const email = (this.vs.vault().contact.email || '').trim();
+    const email = (this.contact().email || '').trim();
     return email ? { label: email, url: `mailto:${email}` } : null;
   });
 
   readonly phoneLink = computed(() => {
-    const phone = (this.vs.vault().contact.phone || '').trim();
+    const phone = (this.contact().phone || '').trim();
     if (!phone) return null;
     const tel = phone.replace(/[\s()-]/g, '');
     return { label: phone, url: `tel:${tel || phone}` };
   });
 
-  readonly locationText = computed(() => (this.vs.vault().contact.location || '').trim());
+  readonly locationText = computed(() => (this.contact().location || '').trim());
 
   readonly linkedinLink = computed(() =>
-    formatProfileLink(this.vs.vault().contact.linkedin, 'linkedin.com', '/in/'),
+    formatProfileLink(this.contact().linkedin, 'linkedin.com', '/in/'),
   );
 
   readonly githubLink = computed(() =>
-    formatProfileLink(this.vs.vault().contact.github, 'github.com', '/'),
+    formatProfileLink(this.contact().github, 'github.com', '/'),
   );
 
   readonly contactLinks = computed(() => {
@@ -158,7 +170,7 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
         .filter(Boolean)
         .map((s) => s.toLowerCase()),
     );
-    return (this.vs.vault().contact.links || [])
+    return (this.contact().links || [])
       .map((l) => l.trim())
       .filter(Boolean)
       .map((l) => ({
@@ -702,7 +714,98 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
 
   print(): void {
     this.layout.markStepCompleted('preview');
-    this.ext.exportPdf(this.vs.vault().contact.fullName);
+    this.ext.exportPdf(this.contact().fullName);
+  }
+
+  // --- Saved Resumes Vault ---
+  openSavedModal(): void {
+    this.snapshotMsg.set(null);
+    if (!this.snapshotNameDraft().trim()) {
+      const active = this.savedResumes.resumes().find((r) => r.id === this.activeSnapshotId());
+      this.snapshotNameDraft.set(active?.name || this.s().rodoCompanyName.trim() || '');
+    }
+    this.savedModalOpen.set(true);
+  }
+
+  captureCurrentSnapshot(): ResumeSnapshotData {
+    return structuredClone({
+      contact: this.contact(),
+      summary: this.summary(),
+      experience: this.vs.selectedExperience(),
+      education: this.vs.visibleEducation(),
+      certifications: this.vs.visibleCertifications(),
+      skills: this.skills(),
+      settings: this.s(),
+    });
+  }
+
+  saveCurrentSnapshot(updateActive = false): void {
+    const targetId = updateActive ? this.activeSnapshotId() : null;
+    const saved = this.savedResumes.saveSnapshot(
+      this.snapshotNameDraft(),
+      this.captureCurrentSnapshot(),
+      targetId,
+    );
+    this.activeSnapshotId.set(saved.id);
+    this.snapshotNameDraft.set(saved.name);
+    this.snapshotMsg.set({
+      ok: true,
+      text: targetId ? `Updated "${saved.name}".` : `Saved "${saved.name}" to Saved Resumes.`,
+    });
+  }
+
+  loadSavedSnapshot(item: SavedResumeSnapshot): void {
+    this.vs.loadResumeSnapshot(item.snapshot);
+    this.activeSnapshotId.set(item.id);
+    this.snapshotNameDraft.set(item.name);
+    this.savedModalOpen.set(false);
+  }
+
+  deleteSavedSnapshot(id: string): void {
+    this.savedResumes.deleteSnapshot(id);
+    if (this.activeSnapshotId() === id) {
+      this.activeSnapshotId.set(null);
+    }
+  }
+
+  exportSingleSnapshot(item: SavedResumeSnapshot): void {
+    const slug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'resume';
+    this.downloadJson(this.savedResumes.exportSingleJson(item.id), `${slug}.json`);
+  }
+
+  exportAllSnapshots(): void {
+    this.downloadJson(this.savedResumes.exportAllJson(), 'saved-resumes.json');
+  }
+
+  async importSnapshots(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const { added, updated } = this.savedResumes.importJson(text);
+      this.snapshotMsg.set({
+        ok: true,
+        text: `Imported ${added} new and updated ${updated} saved resume(s).`,
+      });
+    } catch {
+      this.snapshotMsg.set({
+        ok: false,
+        text: 'Could not import JSON. Expected a saved resume object or array.',
+      });
+    } finally {
+      input.value = '';
+    }
+  }
+
+  private downloadJson(content: string, filename: string): void {
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = this.doc.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 }
 

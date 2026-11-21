@@ -322,11 +322,58 @@ describe('PreviewComponent', () => {
     fixture.detectChanges();
 
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('.toolbar__actions button')?.textContent).toContain('Export PDF');
+    expect(el.querySelector('.toolbar__actions')?.textContent).toContain('Export PDF');
 
     comp.editMode.set(true);
     fixture.detectChanges();
-    expect(el.querySelector('.toolbar__actions button')).toBeNull();
+    expect(el.querySelector('.toolbar__actions')?.textContent).not.toContain('Export PDF');
+  });
+
+  it('saves, loads, and updates a point-in-time resume snapshot without mutating the Master Vault', async () => {
+    localStorage.removeItem('ats-resume-builder:saved-resumes');
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+    await comp.savedResumes.ready;
+
+    vs.update((v) => {
+      v.summary = 'Vault summary';
+      v.experience.push({
+        id: 'exp_1',
+        role: 'Engineer',
+        company: 'OldCo',
+        startDate: '2020-01',
+        endDate: 'Present',
+        bullets: [{ id: 'b_1', text: 'Original vault bullet' }],
+      });
+    });
+    vs.selectAll();
+    fixture.detectChanges();
+
+    comp.snapshotNameDraft.set('OldCo Application');
+    comp.saveCurrentSnapshot(false);
+    expect(comp.savedResumes.resumes().length).toBe(1);
+
+    // Mutate Master Vault afterwards
+    vs.update((v) => {
+      v.summary = 'Newer vault summary';
+      v.experience[0].bullets[0].text = 'Newer vault bullet';
+    });
+
+    // Load the older snapshot and add a bullet to it
+    comp.loadSavedSnapshot(comp.savedResumes.resumes()[0]);
+    expect(comp.summary()).toBe('Vault summary');
+    expect(vs.selectedExperience()[0].bullets[0].text).toBe('Original vault bullet');
+
+    comp.setBulletDraft('exp_1', 'Added later to old application');
+    comp.addResumeBullet('exp_1');
+    comp.saveCurrentSnapshot(true);
+
+    expect(comp.savedResumes.resumes()[0].snapshot.experience[0].bullets.length).toBe(2);
+    expect(vs.vault().experience[0].bullets.length).toBe(1);
+    localStorage.removeItem('ats-resume-builder:saved-resumes');
   });
 
   it('reorders experience roles and bullets in edit mode', async () => {

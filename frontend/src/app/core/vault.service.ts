@@ -1,6 +1,7 @@
 import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angular/core';
 import { StorageService } from './storage.service';
-import { Bullet, Certification, Education, Experience, MasterVault, emptyVault, normalizeVault, nextId } from './vault.model';
+import { Bullet, Certification, Contact, Education, Experience, MasterVault, emptyVault, normalizeVault, nextId } from './vault.model';
+import type { ResumeSnapshotData } from './saved-resumes.service';
 
 const VAULT_KEY = 'master-vault';
 const ONBOARDED_KEY = 'ats-onboarding-completed';
@@ -39,6 +40,7 @@ export class VaultService {
   readonly resumeOnlyCertifications = signal<Certification[]>([]);
   readonly hiddenCertificationIds = signal<Set<string>>(new Set());
   readonly hiddenSummary = signal(false);
+  readonly snapshotContact = signal<Contact | null>(null);
 
   readonly settings = computed(() => this.vault().settings);
   readonly ready: Promise<void>;
@@ -158,7 +160,7 @@ export class VaultService {
   /** Signals an in-place mutation (e.g. via ngModel) so dependents refresh and the vault persists. */
   touch(): void {
     this.pristine.set(false);
-    this.vault.update((v) => ({ ...v }));
+    this.vault.update((v) => ({ ...v, contact: { ...v.contact }, settings: { ...v.settings } }));
   }
 
   update(fn: (draft: MasterVault) => void): void {
@@ -295,7 +297,27 @@ export class VaultService {
     return [...this.vault().certifications.filter((c) => !hidden.has(c.id)), ...this.resumeOnlyCertifications()];
   });
 
-  // --- Backup ---
+  /** Loads a point-in-time resume snapshot into the preview/editor without mutating the Master Vault. */
+  loadResumeSnapshot(snap: ResumeSnapshotData): void {
+    const v = this.vault();
+    this.selectedBulletIds.set(new Set());
+    this.resumeBulletOverrides.set({});
+    this.resumeOnlyBullets.set({});
+    this.hiddenEducationIds.set(new Set(v.education.map((e) => e.id)));
+    this.hiddenCertificationIds.set(new Set(v.certifications.map((c) => c.id)));
+    this.resumeOnlyExperience.set(structuredClone(snap.experience));
+    this.resumeOnlyEducation.set(structuredClone(snap.education));
+    this.resumeOnlyCertifications.set(structuredClone(snap.certifications));
+    this.tailoredSummary.set(snap.summary);
+    this.hiddenSummary.set(!snap.summary);
+    this.tailoredSkills.set([...snap.skills]);
+    this.snapshotContact.set(structuredClone(snap.contact));
+    this.update((draft) => {
+      draft.settings = { ...snap.settings };
+    });
+  }
+
+  /** Backup */
   exportJson(): string {
     return JSON.stringify(this.vault(), null, 2);
   }
@@ -326,6 +348,7 @@ export class VaultService {
     this.resumeOnlyCertifications.set([]);
     this.hiddenCertificationIds.set(new Set());
     this.hiddenSummary.set(false);
+    this.snapshotContact.set(null);
   }
 }
 
