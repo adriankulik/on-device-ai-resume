@@ -402,6 +402,26 @@ fieldset.role {
   &__control { flex: 0 0 180px; width: 180px; }
 
   &--nested { border-top-style: dashed; }
+  &--margins-grid { flex-wrap: wrap; }
+}
+
+.custom-margins-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(60px, 1fr));
+  gap: v.$sp-2;
+  flex: 1 1 260px;
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: v.$fs-xs;
+    color: var(--c-ink-muted);
+
+    input {
+      width: 100%;
+    }
+  }
 }
 
 .settings__subhead {

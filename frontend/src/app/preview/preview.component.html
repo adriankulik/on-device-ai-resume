@@ -107,10 +107,40 @@
       <div class="setting">
         <span class="setting__text">
           <span class="setting__label">Margins</span>
-          <span class="setting__desc">Predefined page padding around the resume</span>
+          <span class="setting__desc">Predefined or custom page padding around the resume</span>
         </span>
         <app-dropdown class="setting__control" label="Margins" [showLabel]="false" [options]="marginOptions()" [value]="s().marginPreset" (valueChange)="setMarginPreset($event)" />
       </div>
+      @if (s().marginPreset === 'custom') {
+        <div class="setting setting--nested setting--margins-grid">
+          <span class="setting__text">
+            <span class="setting__label">Custom margins ({{ s().unitSystem }})</span>
+            <span class="setting__desc">Top, right, bottom, and left padding</span>
+          </span>
+          <div class="custom-margins-grid">
+            <label class="custom-margins-grid__field">
+              <span>Top</span>
+              <input type="number" min="0" [max]="s().unitSystem === 'in' ? 2.36 : 60" [step]="s().unitSystem === 'in' ? 0.05 : 1"
+                [ngModel]="customMarginDisplay('topMm')" (ngModelChange)="setCustomMargin('topMm', $event)" />
+            </label>
+            <label class="custom-margins-grid__field">
+              <span>Right</span>
+              <input type="number" min="0" [max]="s().unitSystem === 'in' ? 2.36 : 60" [step]="s().unitSystem === 'in' ? 0.05 : 1"
+                [ngModel]="customMarginDisplay('rightMm')" (ngModelChange)="setCustomMargin('rightMm', $event)" />
+            </label>
+            <label class="custom-margins-grid__field">
+              <span>Bottom</span>
+              <input type="number" min="0" [max]="s().unitSystem === 'in' ? 2.36 : 60" [step]="s().unitSystem === 'in' ? 0.05 : 1"
+                [ngModel]="customMarginDisplay('bottomMm')" (ngModelChange)="setCustomMargin('bottomMm', $event)" />
+            </label>
+            <label class="custom-margins-grid__field">
+              <span>Left</span>
+              <input type="number" min="0" [max]="s().unitSystem === 'in' ? 2.36 : 60" [step]="s().unitSystem === 'in' ? 0.05 : 1"
+                [ngModel]="customMarginDisplay('leftMm')" (ngModelChange)="setCustomMargin('leftMm', $event)" />
+            </label>
+          </div>
+        </div>
+      }
     </div>
     </app-collapsible>
 
