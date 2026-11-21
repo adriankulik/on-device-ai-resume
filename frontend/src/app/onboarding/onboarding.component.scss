@@ -264,11 +264,11 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-bottom: 14px;
-  padding: 10px 14px;
-  border: 1px solid #86efac;
-  border-radius: 8px;
-  background: #f0fdf4;
-  color: #166534;
-  font-size: 13px;
+  margin-bottom: v.$sp-3;
+  padding: v.$sp-2 v.$sp-3;
+  border: 1px solid var(--c-status-ok-border);
+  border-radius: v.$radius-md;
+  background: var(--c-status-ok-bg);
+  color: var(--c-status-ok-ink);
+  font-size: v.$fs-sm;
 }
