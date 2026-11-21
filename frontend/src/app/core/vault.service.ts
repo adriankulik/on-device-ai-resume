@@ -355,7 +355,7 @@ export class VaultService {
     this.tailoredSkills.set([...snap.skills]);
     this.snapshotContact.set(structuredClone(snap.contact));
     this.update((draft) => {
-      draft.settings = { ...snap.settings };
+      draft.settings = normalizeVault({ settings: snap.settings }).settings;
     });
   }
 
