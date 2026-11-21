@@ -78,4 +78,37 @@ describe('VaultService persistence', () => {
     expect(vs.tailoredSkills()).toEqual(['TypeScript', 'Angular']);
     expect(vs.selectedBulletIds().has('b_1')).toBeTrue();
   });
+
+  it('preserves deselected bullets when a vault settings change syncs from another context', async () => {
+    const vs = TestBed.inject(VaultService);
+    await tick();
+
+    vs.update((v) => {
+      v.experience.push({
+        id: 'exp_1',
+        role: 'Engineer',
+        company: 'Acme',
+        startDate: '2022-01',
+        endDate: 'Present',
+        bullets: [
+          { id: 'b_1', text: 'Keep me' },
+          { id: 'b_2', text: 'Deselect me' },
+        ],
+      });
+    });
+    vs.setSelected(['b_1']);
+    expect(vs.selectedBulletIds().has('b_2')).toBeFalse();
+
+    const synced = structuredClone(vs.vault());
+    synced.settings.includeRodoClause = !synced.settings.includeRodoClause;
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: KEY,
+        newValue: JSON.stringify(synced),
+      }),
+    );
+
+    expect(vs.selectedBulletIds().has('b_1')).toBeTrue();
+    expect(vs.selectedBulletIds().has('b_2')).toBeFalse();
+  });
 });

@@ -90,7 +90,7 @@ export class VaultService {
     try {
       if (key === VAULT_KEY) {
         if (newValue) {
-          this.setVault(normalizeVault(newValue), true);
+          this.setVault(normalizeVault(newValue), false);
         } else {
           this.vault.set(emptyVault());
           this.pristine.set(true);
@@ -126,7 +126,7 @@ export class VaultService {
       }
 
       if (tailored) {
-        if (Array.isArray(tailored.selectedBulletIds) && tailored.selectedBulletIds.length > 0) {
+        if (Array.isArray(tailored.selectedBulletIds)) {
           this.selectedBulletIds.set(new Set(tailored.selectedBulletIds));
         }
         if (tailored.tailoredSummary !== undefined) {
