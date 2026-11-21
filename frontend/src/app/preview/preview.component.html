@@ -527,22 +527,69 @@
             <h2 class="r-section__head"><span>Skills</span></h2>
             @if (editMode()) {
               <div class="r-skills-edit no-print">
-                @for (sk of skills(); track sk) {
-                  <span class="r-skill-chip">
-                    {{ sk }}
-                    <button type="button" class="r-edit-btn r-edit-btn--danger" [attr.aria-label]="'Remove ' + sk" (click)="removeResumeSkill(sk)">×</button>
-                  </span>
+                @if (categorizedSkills().length || (vs.vault().skillCategories.length)) {
+                  <div class="r-skills-cats-edit">
+                    @for (grp of categorizedSkills(); track grp.category) {
+                      <div class="r-skill-cat-edit">
+                        <div class="r-skill-cat-edit__head">
+                          <input
+                            type="text"
+                            class="r-skill-cat-edit__name"
+                            aria-label="Category name"
+                            [ngModel]="grp.category"
+                            (change)="renameSkillCategory(grp.category, $any($event.target).value)"
+                            (keydown.enter)="$any($event.target).blur()"
+                          />
+                        </div>
+                        <div class="r-skill-cat-edit__chips">
+                          @for (sk of grp.skills; track sk) {
+                            <span class="r-skill-chip">
+                              {{ sk }}
+                              <button type="button" class="r-edit-btn r-edit-btn--danger" [attr.aria-label]="'Remove ' + sk" (click)="removeResumeSkill(sk)">×</button>
+                            </span>
+                          }
+                        </div>
+                        <div class="r-inline-add">
+                          <input
+                            type="text"
+                            [placeholder]="'Add skill to ' + grp.category + '…'"
+                            [ngModel]="categorySkillDrafts()[grp.category]"
+                            (ngModelChange)="setCategorySkillDraft(grp.category, $event)"
+                            (keydown.enter)="addResumeSkillToCategory(grp.category)"
+                          />
+                          <button type="button" class="r-edit-btn r-edit-btn--primary" (click)="addResumeSkillToCategory(grp.category)">+ Add</button>
+                        </div>
+                      </div>
+                    }
+                    <div class="r-inline-add">
+                      <input
+                        type="text"
+                        placeholder="New category name…"
+                        [ngModel]="newSkillCategory()"
+                        (ngModelChange)="newSkillCategory.set($event)"
+                        (keydown.enter)="addSkillCategory()"
+                      />
+                      <button type="button" class="r-edit-btn" (click)="addSkillCategory()">+ Category</button>
+                    </div>
+                  </div>
+                } @else {
+                  @for (sk of skills(); track sk) {
+                    <span class="r-skill-chip">
+                      {{ sk }}
+                      <button type="button" class="r-edit-btn r-edit-btn--danger" [attr.aria-label]="'Remove ' + sk" (click)="removeResumeSkill(sk)">×</button>
+                    </span>
+                  }
+                  <div class="r-inline-add">
+                    <input
+                      type="text"
+                      placeholder="Add skill…"
+                      [ngModel]="newSkill()"
+                      (ngModelChange)="newSkill.set($event)"
+                      (keydown.enter)="addResumeSkill()"
+                    />
+                    <button type="button" class="r-edit-btn r-edit-btn--primary" (click)="addResumeSkill()">+ Add</button>
+                  </div>
                 }
-              </div>
-              <div class="r-inline-add no-print">
-                <input
-                  type="text"
-                  placeholder="Add skill…"
-                  [ngModel]="newSkill()"
-                  (ngModelChange)="newSkill.set($event)"
-                  (keydown.enter)="addResumeSkill()"
-                />
-                <button type="button" class="r-edit-btn r-edit-btn--primary" (click)="addResumeSkill()">+ Add</button>
               </div>
             } @else if (categorizedSkills().length) {
               <div class="r-skill-cats">

@@ -777,6 +777,46 @@
     margin: 0;
   }
 
+  .r-skills-cats-edit {
+    display: flex;
+    flex-direction: column;
+    gap: 2mm;
+    width: 100%;
+  }
+
+  .r-skill-cat-edit {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2mm;
+    padding: 1.5mm 2mm;
+    border: 1px dashed var(--rule-color);
+    border-radius: 4px;
+
+    &__head {
+      display: flex;
+      align-items: center;
+      gap: 1.5mm;
+    }
+
+    &__name {
+      font: inherit;
+      font-weight: 600;
+      font-size: 0.95em;
+      color: var(--text-primary);
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      padding: 0.5mm 1.5mm;
+      background: #fff;
+      min-width: 28mm;
+    }
+
+    &__chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5mm;
+    }
+  }
+
   .r-certs,
   .r-skills-edit {
     display: flex;
