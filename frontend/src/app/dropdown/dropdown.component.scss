@@ -7,6 +7,10 @@
   flex-direction: column;
   gap: v.$sp-1;
   min-width: 0;
+
+  &:has(.dropdown__list) {
+    z-index: v.$z-overlay;
+  }
 }
 
 .dropdown__caption {
