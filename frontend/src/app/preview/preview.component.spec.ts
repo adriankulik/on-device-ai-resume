@@ -497,4 +497,59 @@ describe('PreviewComponent', () => {
     expect(phoneEl?.getAttribute('href')).toBe('tel:+48123456789');
     expect(phoneEl?.textContent?.trim()).toBe('+48 123 456 789');
   });
+
+  it('flushes new skill categories and category skills on Save and preserves categories across snapshot save/load', async () => {
+    localStorage.removeItem('ats-resume-builder:saved-resumes');
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+    await comp.savedResumes.ready;
+
+    vs.update((v) => {
+      v.skills = ['TypeScript'];
+      v.skillCategories = [{ category: 'Frontend', skills: ['TypeScript'] }];
+    });
+    comp.toggleEditMode();
+    fixture.detectChanges();
+
+    comp.setCategorySkillDraft('Frontend', 'Angular');
+    comp.newSkillCategory.set('Cloud');
+    comp.toggleEditMode(); // Click Save
+    fixture.detectChanges();
+
+    expect(vs.vault().skills).toEqual(['TypeScript', 'Angular']);
+    expect(vs.vault().skillCategories).toEqual([
+      { category: 'Frontend', skills: ['TypeScript', 'Angular'] },
+      { category: 'Cloud', skills: [] },
+    ]);
+    expect(comp.categorizedSkills()).toEqual([
+      { category: 'Frontend', skills: ['TypeScript', 'Angular'] },
+    ]);
+
+    comp.toggleEditMode();
+    comp.setCategorySkillDraft('Cloud', 'Docker');
+    comp.toggleEditMode(); // Save again with skill added to Cloud
+    expect(vs.vault().skillCategories).toEqual([
+      { category: 'Frontend', skills: ['TypeScript', 'Angular'] },
+      { category: 'Cloud', skills: ['Docker'] },
+    ]);
+
+    comp.snapshotNameDraft.set('Cloud Role');
+    comp.saveCurrentSnapshot(false);
+
+    // Change Master Vault afterwards to verify loaded snapshot keeps its own categories & skills
+    vs.update((v) => {
+      v.skills = ['Rust'];
+      v.skillCategories = [{ category: 'Systems', skills: ['Rust'] }];
+    });
+
+    comp.loadSavedSnapshot(comp.savedResumes.resumes()[0]);
+    expect(comp.categorizedSkills()).toEqual([
+      { category: 'Frontend', skills: ['TypeScript', 'Angular'] },
+      { category: 'Cloud', skills: ['Docker'] },
+    ]);
+    localStorage.removeItem('ats-resume-builder:saved-resumes');
+  });
 });

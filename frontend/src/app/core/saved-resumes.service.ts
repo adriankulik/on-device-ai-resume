@@ -5,6 +5,7 @@ import {
   Contact,
   Education,
   Experience,
+  SkillCategory,
   VaultSettings,
   emptyVault,
   normalizeVault,
@@ -19,6 +20,7 @@ export interface ResumeSnapshotData {
   education: Education[];
   certifications: Certification[];
   skills: string[];
+  skillCategories?: SkillCategory[];
   settings: VaultSettings;
 }
 
@@ -27,13 +29,6 @@ export interface SavedResumeSnapshot {
   name: string;
   savedAt: string;
   snapshot: ResumeSnapshotData;
-}
-
-export function isSavedResumePayload(parsed: unknown): boolean {
-  if (Array.isArray(parsed)) return parsed.length > 0;
-  if (!parsed || typeof parsed !== 'object') return false;
-  const r = parsed as Record<string, unknown>;
-  return typeof r['snapshot'] === 'object' && r['snapshot'] !== null;
 }
 
 export function normalizeSnapshot(raw: unknown): SavedResumeSnapshot {
@@ -70,6 +65,7 @@ export function normalizeSnapshot(raw: unknown): SavedResumeSnapshot {
       education: normalized.education,
       certifications: normalized.certifications,
       skills: normalized.skills,
+      skillCategories: normalized.skillCategories,
       settings: normalized.settings,
     },
   };
