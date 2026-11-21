@@ -28,7 +28,7 @@
 @if (!vs.onboarded()) {
   <app-onboarding />
 } @else {
-  <nav class="tabs no-print" aria-label="Workspace steps">
+  <nav class="tabs no-print" [class.tabs--always]="ext.isPopup()" aria-label="Workspace steps">
     @for (t of tabs; track t.id) {
       <button
         type="button"
@@ -47,11 +47,12 @@
   <main
     id="workspace"
     class="workspace"
+    [class.workspace--single]="ext.isPopup()"
     [class.vault-collapsed]="layout.vaultCollapsed()"
     [class.triage-collapsed]="layout.triageCollapsed()"
     [attr.data-tab]="tab()"
   >
-    <section class="panel panel-vault no-print" [class.collapsed]="layout.vaultCollapsed()" aria-label="Master career vault">
+    <section class="panel panel-vault no-print" [class.collapsed]="layout.vaultCollapsed()" aria-label="Career vault">
       <div class="vault-rail">
         <button
           app-button
@@ -60,11 +61,11 @@
           size="sm"
           [iconOnly]="true"
           [iconLeading]="expandIcon"
-          aria-label="Expand master career vault"
+          aria-label="Expand career vault"
           [attr.aria-expanded]="false"
           (click)="layout.setVaultCollapsed(false)"
         ></button>
-        <span class="vault-rail__label">Master Career Vault</span>
+        <span class="vault-rail__label">Career Vault</span>
       </div>
       <app-vault-editor />
     </section>

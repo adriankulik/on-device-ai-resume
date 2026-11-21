@@ -846,7 +846,17 @@
   }
 }
 
-/* ---------- Responsive: stepper/tabs below desktop width ---------- */
+/* ---------- Single-panel popup / responsive stepper below desktop width ---------- */
+.tabs.tabs--always { display: flex; }
+.workspace.workspace--single {
+  display: block;
+  overflow-y: auto;
+  .panel { display: none; height: 100%; }
+  &[data-tab='vault'] .panel-vault,
+  &[data-tab='triage'] .panel-triage,
+  &[data-tab='preview'] .panel-preview { display: block; }
+}
+
 @media (max-width: 1100px) {
   .tabs { display: flex; }
   .workspace { display: block; overflow-y: auto; }
