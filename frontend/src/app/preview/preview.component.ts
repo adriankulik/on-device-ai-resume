@@ -476,16 +476,6 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     if (visIdx < 0 || targetVisIdx < 0 || targetVisIdx >= visible.length) return;
     const otherId = visible[targetVisIdx].id;
 
-    const vaultExps = this.vs.vault().experience;
-    const i1 = vaultExps.findIndex((e) => e.id === expId);
-    const i2 = vaultExps.findIndex((e) => e.id === otherId);
-    if (i1 !== -1 && i2 !== -1) {
-      this.vs.update((v) => {
-        [v.experience[i1], v.experience[i2]] = [v.experience[i2], v.experience[i1]];
-      });
-      return;
-    }
-
     const r1 = this.vs.resumeOnlyExperience().findIndex((e) => e.id === expId);
     const r2 = this.vs.resumeOnlyExperience().findIndex((e) => e.id === otherId);
     if (r1 !== -1 && r2 !== -1) {
@@ -493,6 +483,16 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
         const copy = [...list];
         [copy[r1], copy[r2]] = [copy[r2], copy[r1]];
         return copy;
+      });
+      return;
+    }
+
+    const vaultExps = this.vs.vault().experience;
+    const i1 = vaultExps.findIndex((e) => e.id === expId);
+    const i2 = vaultExps.findIndex((e) => e.id === otherId);
+    if (i1 !== -1 && i2 !== -1) {
+      this.vs.update((v) => {
+        [v.experience[i1], v.experience[i2]] = [v.experience[i2], v.experience[i1]];
       });
     }
   }
@@ -504,6 +504,21 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     const targetVisIdx = visIdx + delta;
     if (visIdx < 0 || targetVisIdx < 0 || targetVisIdx >= role.bullets.length) return;
     const otherId = role.bullets[targetVisIdx].id;
+
+    if (this.vs.resumeOnlyExperience().some((r) => r.id === expId)) {
+      this.vs.resumeOnlyExperience.update((list) =>
+        list.map((r) => {
+          if (r.id !== expId) return r;
+          const r1 = r.bullets.findIndex((b) => b.id === bulletId);
+          const r2 = r.bullets.findIndex((b) => b.id === otherId);
+          if (r1 === -1 || r2 === -1) return r;
+          const copy = [...r.bullets];
+          [copy[r1], copy[r2]] = [copy[r2], copy[r1]];
+          return { ...r, bullets: copy };
+        }),
+      );
+      return;
+    }
 
     const vaultRole = this.vs.vault().experience.find((e) => e.id === expId);
     if (vaultRole) {
@@ -526,20 +541,7 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
           return { ...map, [expId]: copy };
         });
       }
-      return;
     }
-
-    this.vs.resumeOnlyExperience.update((list) =>
-      list.map((r) => {
-        if (r.id !== expId) return r;
-        const r1 = r.bullets.findIndex((b) => b.id === bulletId);
-        const r2 = r.bullets.findIndex((b) => b.id === otherId);
-        if (r1 === -1 || r2 === -1) return r;
-        const copy = [...r.bullets];
-        [copy[r1], copy[r2]] = [copy[r2], copy[r1]];
-        return { ...r, bullets: copy };
-      }),
-    );
   }
 
   updateNewRoleField<K extends 'role' | 'company' | 'startDate' | 'endDate' | 'bullet'>(key: K, value: string): void {
