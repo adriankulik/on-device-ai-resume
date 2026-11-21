@@ -877,6 +877,19 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     });
   }
 
+  deleteSkillCategory(category: string): void {
+    const grpSkills = new Set(
+      this.editSkillCategories().find((g) => g.category === category)?.skills ?? [],
+    );
+    if (grpSkills.size) {
+      const base = this.vs.tailoredSkills() ?? [...this.vs.vault().skills];
+      this.vs.tailoredSkills.set(base.filter((sk) => !grpSkills.has(sk)));
+    }
+    this.vs.update((v) => {
+      v.skillCategories = (v.skillCategories ?? []).filter((c) => c.category !== category);
+    });
+  }
+
   addSkillCategory(): void {
     const name = this.newSkillCategory().trim();
     if (!name) return;
