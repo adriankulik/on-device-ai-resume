@@ -28,10 +28,16 @@ export const COMMON_LOCAL_PRESETS = [
     hint: 'Default LM Studio local server at port 1234',
   },
   {
-    name: 'OMLX / llama.cpp',
+    name: 'OMLX',
+    endpoint: 'http://localhost:8000/v1',
+    defaultModel: 'default',
+    hint: 'Default OMLX server at port 8000',
+  },
+  {
+    name: 'llama.cpp',
     endpoint: 'http://localhost:8080/v1',
     defaultModel: 'default',
-    hint: 'llama.cpp / OMLX server at port 8080',
+    hint: 'Default llama.cpp server at port 8080',
   },
 ] as const;
 
