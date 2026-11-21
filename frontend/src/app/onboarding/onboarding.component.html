@@ -56,6 +56,14 @@
     </div>
   } @else {
     <div class="onboarding-card review-card">
+      @if (importedResumeCount() !== null) {
+        <div class="import-summary" role="status">
+          <strong>Import complete</strong>
+          <span>
+            {{ importedResumeCount() }} saved {{ importedResumeCount() === 1 ? 'resume' : 'resumes' }} found alongside your vault.
+          </span>
+        </div>
+      }
       <div class="onboarding-header">
         <button app-button type="button" variant="ghost" size="sm" class="btn-back" (click)="backToPaste()">
           &larr; Back to paste
