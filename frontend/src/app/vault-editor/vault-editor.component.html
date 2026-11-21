@@ -228,6 +228,29 @@
     </app-modal>
   }
 
+  @case ('confirm-import-resume') {
+    <app-modal title="Import exported resume?" (closed)="pendingResumeImport.set(null); dialog.set(null)">
+      @if (pendingResumeImport(); as pending) {
+        <div class="confirm-reset-body">
+          <p class="hint">
+            This file contains {{ pending.label }}. Would you like to also fill your Career Vault with its data, or only add it to Previous resumes?
+          </p>
+          <div class="row wrap">
+            <button app-button type="button" variant="primary" (click)="confirmImportResume(true)">
+              Add &amp; fill Career Vault
+            </button>
+            <button app-button type="button" variant="secondary" (click)="confirmImportResume(false)">
+              Only add to Previous resumes
+            </button>
+            <button app-button type="button" variant="ghost" (click)="pendingResumeImport.set(null); dialog.set(null)">
+              Cancel
+            </button>
+          </div>
+        </div>
+      }
+    </app-modal>
+  }
+
   @case ('summary') {
     <app-modal title="Edit summary" (closed)="dialog.set(null)">
       <textarea rows="8" aria-label="Summary" [ngModel]="vs.vault().summary" (ngModelChange)="setSummary($event)"></textarea>

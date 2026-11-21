@@ -8,7 +8,10 @@ import {
   SavedResumeSnapshot,
   SavedResumesService,
   downloadJsonFile,
+  isSavedResumePayload,
+  normalizeSnapshot,
 } from '../core/saved-resumes.service';
+import { normalizeVault } from '../core/vault.model';
 import { ButtonComponent } from '../button/button.component';
 import { ModalComponent } from '../modal/modal.component';
 import { CollapsibleComponent } from '../collapsible/collapsible.component';
@@ -23,7 +26,8 @@ export type EditorDialog =
   | 'education'
   | 'certifications'
   | 'skills'
-  | 'confirm-reset';
+  | 'confirm-reset'
+  | 'confirm-import-resume';
 
 const MAX_PHOTO_PX = 400;
 const RAW_KEY = 'raw-resume-text';
@@ -53,6 +57,11 @@ export class VaultEditorComponent {
   readonly rawText = signal('');
   readonly message = signal<{ kind: 'ok' | 'error'; text: string } | null>(null);
   readonly parsing = signal(false);
+  readonly pendingResumeImport = signal<{
+    raw: string;
+    label: string;
+    firstSnapshot: SavedResumeSnapshot;
+  } | null>(null);
 
   readonly parsingMessages = [
     'Parsing resume structure…',
@@ -183,11 +192,45 @@ export class VaultEditorComponent {
     input.value = '';
     if (!file) return;
     try {
-      this.vs.importJson(await file.text());
-      this.flash('ok', 'Vault imported.');
+      const text = await file.text();
+      this.handleJsonImportText(text);
     } catch {
-      this.flash('error', 'Invalid vault file.');
+      this.flash('error', 'Invalid JSON file.');
     }
+  }
+
+  handleJsonImportText(text: string): void {
+    const parsed = JSON.parse(text) as unknown;
+    if (isSavedResumePayload(parsed)) {
+      const firstRaw = Array.isArray(parsed) ? parsed[0] : parsed;
+      const firstSnapshot = normalizeSnapshot(firstRaw);
+      const label = Array.isArray(parsed)
+        ? `${parsed.length} saved resume(s)`
+        : `"${firstSnapshot.name}"`;
+      this.pendingResumeImport.set({ raw: text, label, firstSnapshot });
+      this.dialog.set('confirm-import-resume');
+      return;
+    }
+    this.vs.importJson(text);
+    this.dialog.set(null);
+    this.flash('ok', 'Career vault imported.');
+  }
+
+  confirmImportResume(fillVault: boolean): void {
+    const pending = this.pendingResumeImport();
+    if (!pending) return;
+    const { added, updated } = this.savedResumes.importJson(pending.raw);
+    if (fillVault) {
+      this.vs.setVault(normalizeVault(pending.firstSnapshot.snapshot), true);
+    }
+    this.pendingResumeImport.set(null);
+    this.dialog.set(null);
+    this.flash(
+      'ok',
+      fillVault
+        ? `Imported ${added} new / ${updated} updated resume(s) and filled Career Vault.`
+        : `Imported ${added} new / ${updated} updated resume(s) into Previous resumes.`,
+    );
   }
 
   triggerImport(): void {
@@ -227,8 +270,7 @@ export class VaultEditorComponent {
     input.value = '';
     if (!file) return;
     try {
-      const { added, updated } = this.savedResumes.importJson(await file.text());
-      this.flash('ok', `Imported ${added} new and updated ${updated} saved resume(s).`);
+      this.handleJsonImportText(await file.text());
     } catch {
       this.flash('error', 'Invalid saved resumes JSON file.');
     }
