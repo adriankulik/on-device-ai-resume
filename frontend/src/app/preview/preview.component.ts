@@ -424,13 +424,26 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
 
   /** Vault bullets of this role that are not currently on the resume. */
   availableVaultBullets(expId: string): { id: string; text: string }[] {
-    const sel = this.vs.selectedBulletIds();
     const exp = this.vs.vault().experience.find((x) => x.id === expId);
-    return exp ? exp.bullets.filter((b) => !sel.has(b.id)) : [];
+    if (!exp) return [];
+    const onResume = this.vs.selectedExperience().find((x) => x.id === expId);
+    const activeIds = new Set(onResume?.bullets.map((b) => b.id) ?? []);
+    const activeTexts = new Set(onResume?.bullets.map((b) => b.text.trim()) ?? []);
+    return exp.bullets.filter((b) => !activeIds.has(b.id) && !activeTexts.has(b.text.trim()));
   }
 
-  readdVaultBullet(bulletId: string): void {
-    if (bulletId) this.vs.toggleBullet(bulletId, true);
+  readdVaultBullet(expId: string, bulletId: string): void {
+    if (!bulletId) return;
+    const inResumeExp = this.vs.resumeOnlyExperience().some((e) => e.id === expId);
+    if (inResumeExp) {
+      const bullet = this.vs.vault().experience.find((x) => x.id === expId)?.bullets.find((b) => b.id === bulletId);
+      if (!bullet) return;
+      this.vs.resumeOnlyExperience.update((list) =>
+        list.map((e) => (e.id === expId ? { ...e, bullets: [...e.bullets, { ...bullet }] } : e)),
+      );
+      return;
+    }
+    this.vs.toggleBullet(bulletId, true);
   }
 
   removeResumeBullet(expId: string, bulletId: string): void {
@@ -442,7 +455,9 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
       }));
       return;
     }
-    const inResumeExp = this.vs.resumeOnlyExperience().some((e) => e.id === expId);
+    const inResumeExp = this.vs
+      .resumeOnlyExperience()
+      .some((e) => e.id === expId && e.bullets.some((b) => b.id === bulletId));
     if (inResumeExp) {
       this.vs.resumeOnlyExperience.update((list) =>
         list.map((e) => (e.id === expId ? { ...e, bullets: e.bullets.filter((b) => b.id !== bulletId) } : e)),

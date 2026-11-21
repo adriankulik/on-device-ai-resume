@@ -405,7 +405,7 @@
                         <select
                           class="r-vault-select"
                           aria-label="Re-add bullet point from vault"
-                          (change)="readdVaultBullet(sel.value); sel.value = ''"
+                          (change)="readdVaultBullet(e.id, sel.value); sel.value = ''"
                           #sel
                         >
                           <option value="">+ Re-add from vault ({{ avail.length }})…</option>
