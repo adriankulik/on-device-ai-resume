@@ -28,6 +28,8 @@ export class OnboardingComponent {
   readonly rawText = signal('');
   readonly parsing = signal(false);
   readonly error = signal('');
+  /** Number of saved resumes found in an imported file (null when nothing was imported). */
+  readonly importedResumeCount = signal<number | null>(null);
   private readonly importInput = viewChild<ElementRef<HTMLInputElement>>('vaultImportInput');
 
   readonly parsingMessages = [
@@ -100,9 +102,13 @@ export class OnboardingComponent {
         this.draft.set(normalizeVault(raw['vault']));
         if (Array.isArray(raw['savedResumes'])) {
           this.savedResumes.replaceAll(raw['savedResumes']);
+          this.importedResumeCount.set(raw['savedResumes'].length);
+        } else {
+          this.importedResumeCount.set(0);
         }
       } else {
         this.draft.set(normalizeVault(raw));
+        this.importedResumeCount.set(0);
       }
       this.error.set('');
       this.step.set('review');
@@ -117,11 +123,13 @@ export class OnboardingComponent {
     await this.vs.clearAllData();
     this.layout.resetCompletedSteps();
     this.rawText.set('');
+    this.importedResumeCount.set(null);
     this.draft.set(emptyVault());
     this.step.set('paste');
   }
 
   backToPaste(): void {
+    this.importedResumeCount.set(null);
     this.step.set('paste');
   }
 
