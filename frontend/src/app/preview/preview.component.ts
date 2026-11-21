@@ -162,14 +162,7 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
 
   constructor() {
     effect(() => {
-      const p = this.paperSpec();
-      const pad = this.sheetPadding();
-      if (!this.pageStyleEl) {
-        this.pageStyleEl = this.doc.createElement('style');
-        this.pageStyleEl.id = 'resume-page-size-rule';
-        this.doc.head.appendChild(this.pageStyleEl);
-      }
-      this.pageStyleEl.textContent = `@page { size: ${p.widthMm}mm ${p.heightMm}mm; margin: ${pad}; }`;
+      this.applyPageRule();
     });
     effect(() => {
       this.editMode();
@@ -985,7 +978,19 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   readonly ext = inject(ExtensionService);
   private readonly layout = inject(LayoutService);
 
+  private applyPageRule(): void {
+    const p = this.paperSpec();
+    const pad = this.sheetPadding();
+    if (!this.pageStyleEl) {
+      this.pageStyleEl = this.doc.createElement('style');
+      this.pageStyleEl.id = 'resume-page-size-rule';
+      this.doc.head.appendChild(this.pageStyleEl);
+    }
+    this.pageStyleEl.textContent = `@page { size: ${p.widthMm}mm ${p.heightMm}mm; margin: ${pad}; }`;
+  }
+
   print(): void {
+    this.applyPageRule();
     this.layout.markStepCompleted('preview');
     this.ext.exportPdf(this.contact().fullName);
   }

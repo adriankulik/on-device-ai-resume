@@ -928,8 +928,7 @@
 /* ---------- Print: only the resume, as ATS-parseable text ---------- */
 @page {
   size: A4 portrait;
-  /* Setting margin: 0 suppresses Chromium/WebKit browser-generated print headers (date/title) and footers (URL/page numbers) by default */
-  margin: 0;
+  margin: 12mm 14mm;
 }
 
 @media print {
