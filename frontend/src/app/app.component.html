@@ -115,6 +115,30 @@
 
 @if (backupOpen()) {
   <app-modal title="Import / Export" (closed)="backupOpen.set(false)">
+    <div class="backup-summary">
+      <div class="backup-summary__row">
+        <strong>Master Career Vault:</strong>
+        @if (vaultSummary().hasData) {
+          <span class="backup-summary__ok">
+            Loaded{{ vaultSummary().name ? ' (' + vaultSummary().name + ')' : '' }} · {{ vaultSummary().rolesCount }} role(s) · {{ vaultSummary().skillsCount }} skill(s)
+          </span>
+        } @else {
+          <span class="hint">Empty (no user data yet)</span>
+        }
+      </div>
+      <div class="backup-summary__resumes">
+        <strong>Saved Resumes ({{ savedResumes.resumes().length }}):</strong>
+        @if (savedResumes.resumes().length) {
+          <ul class="backup-summary__list">
+            @for (item of savedResumes.resumes(); track item.id) {
+              <li>{{ item.name }} <span class="hint">({{ item.savedAt.slice(0, 10) }})</span></li>
+            }
+          </ul>
+        } @else {
+          <span class="hint">None saved yet.</span>
+        }
+      </div>
+    </div>
     <div class="row wrap">
       <button app-button type="button" variant="secondary" (click)="exportAll()">Export (.json)</button>
       <button app-button type="button" variant="secondary" (click)="triggerHeaderImport()">Import (.json)</button>
