@@ -600,6 +600,17 @@ fieldset.role {
 
   &__list {
     margin: 0;
-    padding-left: 18px;
+    padding-left: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
   }
 }
