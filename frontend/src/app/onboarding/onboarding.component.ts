@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { LucideSparkles, LucideCheck, LucideArrowLeft, LucideArrowRight, LucidePlus, LucideTrash2 } from '@lucide/angular';
 import { ButtonComponent } from '../button/button.component';
 import { VaultService } from '../core/vault.service';
+import { SavedResumesService } from '../core/saved-resumes.service';
 import { AiService } from '../core/ai.service';
 import { LayoutService } from '../core/layout.service';
 import { MasterVault, emptyVault, normalizeVault } from '../core/vault.model';
@@ -19,6 +20,7 @@ type OnboardingStep = 'paste' | 'review';
 })
 export class OnboardingComponent {
   readonly vs = inject(VaultService);
+  private readonly savedResumes = inject(SavedResumesService);
   readonly ai = inject(AiService);
   readonly layout = inject(LayoutService);
 
@@ -93,8 +95,15 @@ export class OnboardingComponent {
     const file = input.files?.[0];
     if (!file) return;
     try {
-      const parsed = normalizeVault(JSON.parse(await file.text()));
-      this.draft.set(parsed);
+      const raw = JSON.parse(await file.text()) as Record<string, unknown>;
+      if (raw && typeof raw === 'object' && 'vault' in raw && !Array.isArray(raw)) {
+        this.draft.set(normalizeVault(raw['vault']));
+        if (Array.isArray(raw['savedResumes'])) {
+          this.savedResumes.replaceAll(raw['savedResumes']);
+        }
+      } else {
+        this.draft.set(normalizeVault(raw));
+      }
       this.error.set('');
       this.step.set('review');
     } catch {
