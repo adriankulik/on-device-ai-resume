@@ -4,11 +4,17 @@
 :host { display: block; }
 
 .collapsible {
+  position: relative;
   background: var(--c-bg-elevated);
   border: 1px solid var(--c-rule);
   border-radius: v.$radius-md;
   overflow: hidden;
   transition: border-color v.$dur-base v.$ease-out;
+
+  &--open {
+    overflow: visible;
+    z-index: 10;
+  }
 }
 
 .collapsible__header {
