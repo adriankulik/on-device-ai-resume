@@ -188,6 +188,9 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   readonly summary = computed(() => (this.vs.hiddenSummary() ? '' : (this.vs.tailoredSummary() ?? this.vs.vault().summary)));
   readonly skills = computed(() => this.vs.tailoredSkills() ?? this.vs.vault().skills);
   readonly categorizedSkills = computed(() => groupSkillsByCategory(this.skills(), this.vs.vault().skillCategories ?? []));
+  readonly editSkillCategories = computed(() =>
+    groupSkillsByCategory(this.skills(), this.vs.vault().skillCategories ?? [], true),
+  );
 
   /** Contact details split into email/phone/location and web links */
   readonly emailLink = computed(() => {

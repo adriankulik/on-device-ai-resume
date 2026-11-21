@@ -286,15 +286,19 @@ export function categorizeSkillsHeuristic(skills: string[]): SkillCategory[] {
 }
 
 /** Filters categorized vault skills to the active/tailored flat skills list, appending uncategorized ones under Other. */
-export function groupSkillsByCategory(flatSkills: string[], categories: SkillCategory[]): SkillCategory[] {
-  if (!categories.length || !flatSkills.length) return [];
+export function groupSkillsByCategory(
+  flatSkills: string[],
+  categories: SkillCategory[],
+  includeEmpty = false,
+): SkillCategory[] {
+  if (!categories.length || (!flatSkills.length && !includeEmpty)) return [];
   const active = new Set(flatSkills);
   const assigned = new Set<string>();
   const result: SkillCategory[] = [];
   for (const grp of categories) {
     const kept = grp.skills.filter((sk) => active.has(sk));
     kept.forEach((sk) => assigned.add(sk));
-    if (kept.length) result.push({ category: grp.category, skills: kept });
+    if (kept.length || includeEmpty) result.push({ category: grp.category, skills: kept });
   }
   const extra = flatSkills.filter((sk) => !assigned.has(sk));
   if (extra.length) {

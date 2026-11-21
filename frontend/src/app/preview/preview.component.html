@@ -537,7 +537,7 @@
               <div class="r-skills-edit no-print">
                 @if (categorizedSkills().length || (vs.vault().skillCategories.length)) {
                   <div class="r-skills-cats-edit">
-                    @for (grp of categorizedSkills(); track grp.category) {
+                    @for (grp of editSkillCategories(); track grp.category) {
                       <div class="r-skill-cat-edit">
                         <div class="r-skill-cat-edit__head">
                           <input
