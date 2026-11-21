@@ -17,6 +17,7 @@ import {
 } from '../core/saved-resumes.service';
 import { VaultService } from '../core/vault.service';
 import {
+  CustomMargins,
   Experience,
   MARGIN_PRESETS,
   MarginPresetId,
@@ -83,10 +84,18 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
 
   readonly s = this.vs.settings;
   readonly paperSpec = computed(() => PAPER_SIZES[this.s().paperSize] ?? PAPER_SIZES.a4);
-  readonly marginSpec = computed(() => MARGIN_PRESETS[this.s().marginPreset] ?? MARGIN_PRESETS.normal);
+  readonly marginSpec = computed(() => {
+    const preset = this.s().marginPreset;
+    if (preset === 'custom') return MARGIN_PRESETS.normal;
+    return MARGIN_PRESETS[preset] ?? MARGIN_PRESETS.normal;
+  });
   readonly pageWidthPx = computed(() => this.paperSpec().widthMm * MM_PX);
   readonly pageHeightPx = computed(() => this.paperSpec().heightMm * MM_PX);
   readonly sheetPadding = computed(() => {
+    if (this.s().marginPreset === 'custom') {
+      const c = this.s().customMargins;
+      return `${c.topMm}mm ${c.rightMm}mm ${c.bottomMm}mm ${c.leftMm}mm`;
+    }
     const m = this.marginSpec();
     return `${m.topBottomMm}mm ${m.leftRightMm}mm`;
   });
@@ -108,13 +117,14 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   });
   readonly marginOptions = computed(() => {
     const u = this.s().unitSystem;
-    return Object.values(MARGIN_PRESETS).map((m) => ({
-      value: m.id,
+    const presets = Object.values(MARGIN_PRESETS).map((m) => ({
+      value: m.id as MarginPresetId,
       label:
         u === 'in'
           ? `${m.label} (${m.topBottomIn} × ${m.leftRightIn} in)`
           : `${m.label} (${m.topBottomMm} × ${m.leftRightMm} mm)`,
     }));
+    return [...presets, { value: 'custom' as MarginPresetId, label: 'Custom' }];
   });
 
   readonly scale = signal(1);
@@ -271,7 +281,37 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   }
 
   setMarginPreset(v: MarginPresetId): void {
+    const prev = this.s().marginPreset;
+    if (v === 'custom' && prev !== 'custom') {
+      const m = MARGIN_PRESETS[prev] ?? MARGIN_PRESETS.normal;
+      this.vs.update((draft) => {
+        draft.settings.marginPreset = 'custom';
+        draft.settings.customMargins = {
+          topMm: m.topBottomMm,
+          rightMm: m.leftRightMm,
+          bottomMm: m.topBottomMm,
+          leftMm: m.leftRightMm,
+        };
+      });
+      return;
+    }
     this.set('marginPreset', v);
+  }
+
+  customMarginDisplay(side: keyof CustomMargins): number {
+    const mm = this.s().customMargins[side];
+    return this.s().unitSystem === 'in' ? Number((mm / 25.4).toFixed(2)) : Number(mm.toFixed(1));
+  }
+
+  setCustomMargin(side: keyof CustomMargins, raw: number | string): void {
+    const n = typeof raw === 'number' ? raw : parseFloat(raw);
+    if (!Number.isFinite(n) || n < 0) return;
+    const mm = this.s().unitSystem === 'in' ? n * 25.4 : n;
+    const clamped = Math.min(60, Math.max(0, Number(mm.toFixed(2))));
+    this.vs.update((draft) => {
+      draft.settings.marginPreset = 'custom';
+      draft.settings.customMargins = { ...draft.settings.customMargins, [side]: clamped };
+    });
   }
 
   // --- Visual editor helpers ---

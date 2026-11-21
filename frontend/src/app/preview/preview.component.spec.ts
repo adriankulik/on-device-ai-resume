@@ -339,6 +339,30 @@ describe('PreviewComponent', () => {
     expect(comp.pageLimitLabel()).toBe('US Letter page 1 limit (11 in)');
   });
 
+  it('prefills custom margins from active preset and updates sheet padding', async () => {
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    comp.setMarginPreset('comfortable');
+    comp.setMarginPreset('custom');
+    fixture.detectChanges();
+
+    expect(comp.customMarginDisplay('topMm')).toBe(16);
+    expect(comp.customMarginDisplay('rightMm')).toBe(18);
+    expect(comp.customMarginDisplay('bottomMm')).toBe(16);
+    expect(comp.customMarginDisplay('leftMm')).toBe(18);
+
+    comp.setCustomMargin('topMm', 10);
+    comp.setCustomMargin('leftMm', 20);
+    fixture.detectChanges();
+
+    const sheet = fixture.nativeElement.querySelector('.sheet') as HTMLElement;
+    expect(sheet.style.padding).toBe('10mm 18mm 16mm 20mm');
+  });
+
   it('disables Export PDF button while editMode is active', async () => {
     await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
     const fixture = TestBed.createComponent(PreviewComponent);

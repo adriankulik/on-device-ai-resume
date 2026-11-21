@@ -30,7 +30,14 @@ export interface Certification {
 export type ThemeName = 'classic-serif' | 'modern-slate' | 'minimal-mono';
 export type UnitSystem = 'mm' | 'in';
 export type PaperSizeId = 'a4' | 'a5' | 'letter' | 'legal';
-export type MarginPresetId = 'compact' | 'normal' | 'comfortable' | 'wide';
+export type MarginPresetId = 'compact' | 'normal' | 'comfortable' | 'wide' | 'custom';
+
+export interface CustomMargins {
+  topMm: number;
+  rightMm: number;
+  bottomMm: number;
+  leftMm: number;
+}
 
 export interface PaperSizeSpec {
   id: PaperSizeId;
@@ -63,7 +70,7 @@ export const PAPER_SIZES: Record<PaperSizeId, PaperSizeSpec> = {
   legal: { id: 'legal', label: 'US Legal', region: 'US', widthMm: 215.9, heightMm: 355.6, widthIn: 8.5, heightIn: 14 },
 };
 
-export const MARGIN_PRESETS: Record<MarginPresetId, MarginPresetSpec> = {
+export const MARGIN_PRESETS: Record<Exclude<MarginPresetId, 'custom'>, MarginPresetSpec> = {
   compact: { id: 'compact', label: 'Compact', topBottomMm: 8, leftRightMm: 10, topBottomIn: 0.31, leftRightIn: 0.39 },
   normal: { id: 'normal', label: 'Normal', topBottomMm: 12, leftRightMm: 14, topBottomIn: 0.47, leftRightIn: 0.55 },
   comfortable: { id: 'comfortable', label: 'Comfortable', topBottomMm: 16, leftRightMm: 18, topBottomIn: 0.63, leftRightIn: 0.71 },
@@ -80,6 +87,7 @@ export interface VaultSettings {
   unitSystem: UnitSystem;
   paperSize: PaperSizeId;
   marginPreset: MarginPresetId;
+  customMargins: CustomMargins;
 }
 
 export interface Contact {
@@ -127,6 +135,7 @@ export function emptyVault(): MasterVault {
       unitSystem: 'mm',
       paperSize: 'a4',
       marginPreset: 'normal',
+      customMargins: { topMm: 12, rightMm: 14, bottomMm: 12, leftMm: 14 },
     },
   };
 }
@@ -190,7 +199,10 @@ export function normalizeVault(raw: unknown): MasterVault {
   const themes = THEMES.map((t) => t.value);
   const unitSystems = UNIT_SYSTEMS.map((u) => u.value);
   const paperSizes = Object.keys(PAPER_SIZES) as PaperSizeId[];
-  const marginPresets = Object.keys(MARGIN_PRESETS) as MarginPresetId[];
+  const marginPresets: MarginPresetId[] = [...(Object.keys(MARGIN_PRESETS) as MarginPresetId[]), 'custom'];
+  const cm = (s['customMargins'] ?? {}) as Record<string, unknown>;
+  const clampMm = (v: unknown, fallback: number) =>
+    typeof v === 'number' && Number.isFinite(v) ? Math.min(60, Math.max(0, v)) : fallback;
   base.settings = {
     theme: themes.includes(s['theme']) ? s['theme'] : base.settings.theme,
     showPhoto: typeof s['showPhoto'] === 'boolean' ? s['showPhoto'] : base.settings.showPhoto,
@@ -208,6 +220,12 @@ export function normalizeVault(raw: unknown): MasterVault {
     unitSystem: unitSystems.includes(s['unitSystem']) ? s['unitSystem'] : base.settings.unitSystem,
     paperSize: paperSizes.includes(s['paperSize']) ? s['paperSize'] : base.settings.paperSize,
     marginPreset: marginPresets.includes(s['marginPreset']) ? s['marginPreset'] : base.settings.marginPreset,
+    customMargins: {
+      topMm: clampMm(cm['topMm'], base.settings.customMargins.topMm),
+      rightMm: clampMm(cm['rightMm'], base.settings.customMargins.rightMm),
+      bottomMm: clampMm(cm['bottomMm'], base.settings.customMargins.bottomMm),
+      leftMm: clampMm(cm['leftMm'], base.settings.customMargins.leftMm),
+    },
   };
   return base;
 }
