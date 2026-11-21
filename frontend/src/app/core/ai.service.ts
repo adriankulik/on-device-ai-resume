@@ -162,11 +162,19 @@ export class AiService {
   ): Promise<{ ok: boolean; message: string; models: string[] }> {
     const normalized = normalizeEndpoint(endpoint);
     const testProvider = new LocalOpenAiProvider(normalized, 'test', apiKey);
-    const ok = await testProvider.isAvailable();
-    if (!ok) {
+    const check = await testProvider.checkConnection();
+    if (!check.ok) {
+      let message: string;
+      if (check.status === 401 || check.status === 403) {
+        message = `Connected to ${normalized}, but authentication failed (HTTP ${check.status}). Enter your API Key / Token.`;
+      } else if (check.status) {
+        message = `Reached ${normalized}, but /models returned HTTP ${check.status}.`;
+      } else {
+        message = `Could not connect to ${normalized}. Verify the server is running and allows CORS from this origin (or use the Chrome Extension if on HTTPS).`;
+      }
       return {
         ok: false,
-        message: `Could not connect to ${normalized}. Verify that Ollama or LM Studio is running.`,
+        message,
         models: [],
       };
     }

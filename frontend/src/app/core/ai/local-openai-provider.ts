@@ -35,11 +35,13 @@ export class LocalOpenAiProvider implements AiProvider {
     return normalizeEndpoint(this.endpoint);
   }
 
-  private getHeaders(): Record<string, string> {
+  private getHeaders(includeContentType = true): Record<string, string> {
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       Accept: 'application/json',
     };
+    if (includeContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
     if (this.apiKey && this.apiKey.trim()) {
       headers['Authorization'] = `Bearer ${this.apiKey.trim()}`;
     }
@@ -59,28 +61,33 @@ export class LocalOpenAiProvider implements AiProvider {
    * Tests whether the local endpoint is alive and accepting requests.
    */
   async isAvailable(): Promise<boolean> {
+    const status = await this.checkConnection();
+    return status.ok;
+  }
+
+  async checkConnection(): Promise<{ ok: boolean; status?: number; networkError?: boolean }> {
     try {
       const url = `${this.normalizedEndpoint}/models`;
       const res = await fetch(url, {
         method: 'GET',
-        headers: this.getHeaders(),
+        headers: this.getHeaders(false),
         signal: this.createTimeoutSignal(3000),
       });
-      return res.ok;
+      return { ok: res.ok, status: res.status };
     } catch {
-      return false;
+      return { ok: false, networkError: true };
     }
   }
 
   /**
-   * Fetches the list of models installed on the local server (Ollama, LM Studio, etc.).
+   * Fetches the list of models installed on the local server (Ollama, LM Studio, OMLX, etc.).
    */
   async listModels(): Promise<string[]> {
     try {
       const url = `${this.normalizedEndpoint}/models`;
       const res = await fetch(url, {
         method: 'GET',
-        headers: this.getHeaders(),
+        headers: this.getHeaders(false),
         signal: this.createTimeoutSignal(4000),
       });
       if (!res.ok) return [];
