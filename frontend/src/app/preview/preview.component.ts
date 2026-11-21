@@ -1,7 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { AfterViewInit, Component, ElementRef, OnDestroy, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucideArrowDown, LucideArrowUp, LucideCheck, LucideDynamicIcon, LucideFileDown, LucidePencil, LucidePlus, LucideTrash2, LucideX } from '@lucide/angular';
+import { LucideArrowDown, LucideArrowUp, LucideCheck, LucideDynamicIcon, LucideExternalLink, LucideFileDown, LucidePencil, LucidePlus, LucideTrash2, LucideX } from '@lucide/angular';
 import { CollapsibleComponent } from '../collapsible/collapsible.component';
 import { DropdownComponent } from '../dropdown/dropdown.component';
 import { ModalComponent } from '../modal/modal.component';
@@ -47,6 +47,7 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   readonly unitSystems = UNIT_SYSTEMS;
   readonly exportIcon = LucideFileDown.icon;
   readonly editIcon = LucidePencil.icon;
+  readonly externalLinkIcon = LucideExternalLink.icon;
   readonly plusIcon = LucidePlus.icon;
   readonly trashIcon = LucideTrash2.icon;
   readonly checkIcon = LucideCheck.icon;
@@ -59,7 +60,7 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   private ro?: ResizeObserver;
 
   readonly settingsOpen = signal(true);
-  readonly editMode = signal(false);
+  readonly editMode = signal(typeof window !== 'undefined' && window.location.search.includes('edit=1'));
   readonly pendingVaultPrompt = signal<{ label: string; commit: () => void } | null>(null);
 
   readonly newBulletDrafts = signal<Record<string, string>>({});
@@ -227,27 +228,43 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
         return;
       }
 
-      // Exclude block-level editor-only controls (.no-print) so edit buttons/forms
-      // don't trigger false 1-page overflow or misplace the page-1 limit line.
-      let extraTotal = 0;
-      let extraAboveLimit = 0;
-      const editorBlocks = sheetEl.querySelectorAll<HTMLElement>(
-        '.r-inline-add.no-print, .r-inline-form.no-print, .r-skills-edit.no-print',
-      );
-      editorBlocks.forEach((el) => {
-        const style = getComputedStyle(el);
-        const h =
-          el.offsetHeight +
-          (parseFloat(style.marginTop || '0') || 0) +
-          (parseFloat(style.marginBottom || '0') || 0);
-        extraTotal += h;
-        if (el.offsetTop < pageH + extraAboveLimit) {
-          extraAboveLimit += h;
-        }
-      });
+      // Measure an off-screen clone with all .no-print controls stripped and skills
+      // rendered as plain text (<p>) so wrapped lines and lozenges are accounted for accurately.
+      const host = this.doc.createElement('div');
+      host.style.cssText = 'position:fixed;left:-99999px;top:0;visibility:hidden;pointer-events:none;';
+      const clone = sheetEl.cloneNode(true) as HTMLElement;
+      clone.style.transform = 'none';
+      clone.style.position = 'static';
 
-      this.printableHeight.set(Math.max(pageH, totalH - extraTotal));
-      this.pageBreakTopPx.set(pageH + extraAboveLimit);
+      const skillsEdit = clone.querySelector('.r-skills-edit');
+      if (skillsEdit?.parentElement) {
+        const p = this.doc.createElement('p');
+        p.textContent = this.skills().join(', ');
+        skillsEdit.parentElement.replaceChild(p, skillsEdit);
+      }
+      clone.querySelectorAll('.no-print').forEach((el) => el.remove());
+
+      host.appendChild(clone);
+      (sheetEl.parentElement ?? this.doc.body).appendChild(host);
+      try {
+        const printableH = clone.offsetHeight;
+        this.printableHeight.set(printableH);
+
+        const selector = '.r-role, .r-bullet-item, .r-edu, .r-rodo';
+        const liveEls = Array.from(sheetEl.querySelectorAll<HTMLElement>(selector));
+        const cloneEls = Array.from(clone.querySelectorAll<HTMLElement>(selector));
+        let delta = totalH - printableH;
+        const count = Math.min(liveEls.length, cloneEls.length);
+        for (let i = 0; i < count; i++) {
+          if (cloneEls[i].offsetTop + cloneEls[i].offsetHeight > pageH) {
+            delta = liveEls[i].offsetTop - cloneEls[i].offsetTop;
+            break;
+          }
+        }
+        this.pageBreakTopPx.set(pageH + delta);
+      } finally {
+        host.remove();
+      }
     };
     this.measureLayout = update;
     this.ro = new ResizeObserver(() => queueMicrotask(update));
@@ -313,8 +330,18 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     });
   }
 
+  stepCustomMargin(side: keyof CustomMargins, direction: -1 | 1): void {
+    const step = this.s().unitSystem === 'in' ? 0.05 : 1;
+    const next = Math.max(0, Number((this.customMarginDisplay(side) + direction * step).toFixed(2)));
+    this.setCustomMargin(side, next);
+  }
+
   // --- Visual editor helpers ---
   toggleEditMode(): void {
+    if (this.ext.isSidePanel() && !this.ext.isPopup()) {
+      this.ext.openInNewTab('tab=preview&edit=1');
+      return;
+    }
     this.editMode.update((v) => !v);
   }
 
