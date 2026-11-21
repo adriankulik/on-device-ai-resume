@@ -149,7 +149,13 @@
     </div>
     <hr class="divider" aria-hidden="true" />
     <div class="card-body">
-      <p class="summary-text">{{ v.skills.join(', ') || 'No skills yet.' }}</p>
+      @if (v.skillCategories.length) {
+        @for (grp of v.skillCategories; track grp.category) {
+          <p class="summary-text"><strong>{{ grp.category }}:</strong> {{ grp.skills.join(', ') }}</p>
+        }
+      } @else {
+        <p class="summary-text">{{ v.skills.join(', ') || 'No skills yet.' }}</p>
+      }
     </div>
   </section>
 
@@ -294,8 +300,8 @@
 
   @case ('skills') {
     <app-modal title="Edit skills" (closed)="dialog.set(null)">
-      <label>Comma separated
-        <textarea #skillsInput rows="6" [ngModel]="vs.vault().skills.join(', ')" (change)="setSkills($any($event.target).value)"></textarea>
+      <label>One category per line (<code>Category: skill1, skill2</code>) or comma-separated
+        <textarea #skillsInput rows="6" [ngModel]="formatSkills(vs.vault().skills, vs.vault().skillCategories)" (change)="setSkills($any($event.target).value)"></textarea>
       </label>
       <button app-button type="button" variant="primary" modal-footer (click)="setSkills(skillsInput.value); dialog.set(null)">Save</button>
     </app-modal>

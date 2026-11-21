@@ -188,18 +188,31 @@
           <h3 class="section-title">Skills</h3>
           <span class="count">{{ draft().skills.length }} skills</span>
         </div>
-        <div class="chips-preview">
-          @for (s of draft().skills; track s) {
-            <span class="chip">{{ s }}</span>
+        @if (draft().skillCategories.length) {
+          @for (grp of draft().skillCategories; track grp.category) {
+            <div class="skill-cat-group">
+              <strong>{{ grp.category }}</strong>
+              <div class="chips-preview">
+                @for (s of grp.skills; track s) {
+                  <span class="chip">{{ s }}</span>
+                }
+              </div>
+            </div>
           }
-        </div>
+        } @else {
+          <div class="chips-preview">
+            @for (s of draft().skills; track s) {
+              <span class="chip">{{ s }}</span>
+            }
+          </div>
+        }
         <label>
-          Edit skills (comma-separated):
-          <input
-            type="text"
-            [ngModel]="draft().skills.join(', ')"
+          Edit skills (one <code>Category: a, b</code> per line or comma-separated):
+          <textarea
+            rows="4"
+            [ngModel]="formatSkills(draft().skills, draft().skillCategories)"
             (change)="setSkills($any($event.target).value)"
-          />
+          ></textarea>
         </label>
       </section>
 

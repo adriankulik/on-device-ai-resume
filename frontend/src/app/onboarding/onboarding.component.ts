@@ -7,7 +7,7 @@ import { VaultService } from '../core/vault.service';
 import { SavedResumesService } from '../core/saved-resumes.service';
 import { AiService } from '../core/ai.service';
 import { LayoutService } from '../core/layout.service';
-import { MasterVault, emptyVault, normalizeVault } from '../core/vault.model';
+import { MasterVault, emptyVault, formatCategorizedSkillsText, normalizeVault, parseCategorizedSkillsText } from '../core/vault.model';
 
 type OnboardingStep = 'paste' | 'review';
 
@@ -158,10 +158,14 @@ export class OnboardingComponent {
     });
   }
 
+  readonly formatSkills = formatCategorizedSkillsText;
+
   setSkills(value: string): void {
+    const parsed = parseCategorizedSkillsText(value);
     this.draft.update((v) => {
       const copy = structuredClone(v);
-      copy.skills = value.split(',').map((s) => s.trim()).filter(Boolean);
+      copy.skills = parsed.skills;
+      copy.skillCategories = parsed.skillCategories;
       return copy;
     });
   }

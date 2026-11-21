@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- parsing untrusted JSON */
 import { Injectable, inject, signal } from '@angular/core';
-import { MasterVault, normalizeVault } from './vault.model';
+import { MasterVault, categorizeSkillsHeuristic, normalizeVault } from './vault.model';
 import { FallbackTriage, fallbackTriage } from './keyword-matcher';
 import { fallbackParseResume } from './fallback-parser';
 import { StorageService } from './storage.service';
@@ -104,6 +104,14 @@ const vaultSchema = {
       },
     },
     skills: { type: 'array', items: str },
+    skillCategories: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { category: str, skills: { type: 'array', items: str } },
+        required: ['category', 'skills'],
+      },
+    },
   },
   required: ['contact', 'summary', 'experience', 'education', 'skills'],
 };
@@ -437,6 +445,7 @@ export class AiService {
     const system =
       'You convert unstructured resume text into structured JSON. Copy text faithfully; do not invent facts. Keep each achievement as a separate bullet string. ' +
       'Use dates like "2022-03" or "Present" when possible. ' +
+      'Group skills into 3 to 6 concise categories in skillCategories (e.g. Backend, Frontend, AI, Design, Cloud, Tools) and also list all skills in skills. ' +
       LANGUAGE_RULE;
     try {
       const raw = await this.promptJson<any>(system, text, vaultSchema);
@@ -457,6 +466,9 @@ export class AiService {
         })),
         settings: base.settings,
       };
+      if (!Array.isArray(withIds.skillCategories) || withIds.skillCategories.length === 0) {
+        withIds.skillCategories = categorizeSkillsHeuristic(Array.isArray(withIds.skills) ? withIds.skills : []);
+      }
       const vault = normalizeVault(withIds);
       vault.contact.photoDataUrl = base.contact.photoDataUrl;
       return vault;

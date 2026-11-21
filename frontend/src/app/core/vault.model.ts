@@ -27,6 +27,11 @@ export interface Certification {
   year: string;
 }
 
+export interface SkillCategory {
+  category: string;
+  skills: string[];
+}
+
 export type ThemeName = 'classic-serif' | 'modern-slate' | 'minimal-mono';
 export type UnitSystem = 'mm' | 'in';
 export type PaperSizeId = 'a4' | 'a5' | 'letter' | 'legal';
@@ -108,6 +113,7 @@ export interface MasterVault {
   education: Education[];
   certifications: Certification[];
   skills: string[];
+  skillCategories: SkillCategory[];
   settings: VaultSettings;
 }
 
@@ -125,6 +131,7 @@ export function emptyVault(): MasterVault {
     education: [],
     certifications: [],
     skills: [],
+    skillCategories: [],
     settings: {
       theme: 'modern-slate',
       showPhoto: true,
@@ -160,7 +167,18 @@ export function normalizeVault(raw: unknown): MasterVault {
     photoDataUrl: str(c['photoDataUrl']),
   };
   base.summary = str(r['summary']);
-  base.skills = strArr(r['skills']);
+  const rawCats = Array.isArray(r['skillCategories']) ? r['skillCategories'] : [];
+  base.skillCategories = rawCats
+    .map((c: unknown) => {
+      const rec = (c ?? {}) as Record<string, unknown>;
+      const category = str(rec['category']).trim();
+      const skills = [...new Set(strArr(rec['skills']))];
+      return { category, skills };
+    })
+    .filter((c) => c.category && c.skills.length > 0);
+  const flat = strArr(r['skills']);
+  const fromCats = base.skillCategories.flatMap((c) => c.skills);
+  base.skills = [...new Set([...flat, ...fromCats])];
 
   const used = new Set<string>();
   const uid = (prefix: string, given: unknown) => {
@@ -242,4 +260,79 @@ export function nextId(vault: MasterVault, prefix: 'exp' | 'b' | 'edu' | 'cert')
   let n = prefix === 'b' ? 101 : 1;
   while (ids.has(`${prefix}_${n}`)) n++;
   return `${prefix}_${n}`;
+}
+
+const SKILL_CATEGORY_RULES: { category: string; keywords: RegExp }[] = [
+  { category: 'AI', keywords: /\b(ai|ml|llm|gpt|gemini|rag|langchain|pytorch|tensorflow|nlp|openai|transformers|huggingface|embeddings?|agents?|genai|machine learning|deep learning)\b/i },
+  { category: 'Frontend', keywords: /\b(react|angular|vue|svelte|next\.?js|typescript|javascript|html|css|scss|sass|tailwind|rxjs|webpack|vite|accessibility|wcag|redux|dom)\b/i },
+  { category: 'Backend', keywords: /\b(node\.?js|python|java|go|golang|rust|c#|\.net|ruby|php|sql|postgres|postgresql|mysql|mongodb|redis|graphql|rest|api|grpc|kafka|express|fastapi|django|spring)\b/i },
+  { category: 'Cloud', keywords: /\b(aws|azure|gcp|google cloud|docker|kubernetes|k8s|terraform|ci\/cd|github actions|linux|serverless|lambda|cloudflare|vercel|nginx)\b/i },
+  { category: 'Design', keywords: /\b(figma|sketch|ui|ux|design system|wirefram|prototyp|adobe|photoshop|illustrator|storybook)\b/i },
+];
+
+/** Groups a flat skill list into concise heuristic categories (Frontend, Backend, AI, Cloud, Design, Other). */
+export function categorizeSkillsHeuristic(skills: string[]): SkillCategory[] {
+  const buckets = new Map<string, string[]>();
+  for (const raw of skills) {
+    const skill = raw.trim();
+    if (!skill) continue;
+    const match = SKILL_CATEGORY_RULES.find((r) => r.keywords.test(skill));
+    const cat = match ? match.category : 'Other';
+    const list = buckets.get(cat) ?? [];
+    if (!list.includes(skill)) list.push(skill);
+    buckets.set(cat, list);
+  }
+  return Array.from(buckets.entries()).map(([category, items]) => ({ category, skills: items }));
+}
+
+/** Filters categorized vault skills to the active/tailored flat skills list, appending uncategorized ones under Other. */
+export function groupSkillsByCategory(flatSkills: string[], categories: SkillCategory[]): SkillCategory[] {
+  if (!categories.length || !flatSkills.length) return [];
+  const active = new Set(flatSkills);
+  const assigned = new Set<string>();
+  const result: SkillCategory[] = [];
+  for (const grp of categories) {
+    const kept = grp.skills.filter((sk) => active.has(sk));
+    kept.forEach((sk) => assigned.add(sk));
+    if (kept.length) result.push({ category: grp.category, skills: kept });
+  }
+  const extra = flatSkills.filter((sk) => !assigned.has(sk));
+  if (extra.length) {
+    const existingOther = result.find((r) => r.category.toLowerCase() === 'other');
+    if (existingOther) existingOther.skills.push(...extra);
+    else result.push({ category: 'Other', skills: extra });
+  }
+  return result;
+}
+
+/** Formats categorized skills as `Category: a, b` lines, or comma-separated when uncategorized. */
+export function formatCategorizedSkillsText(skills: string[], categories: SkillCategory[]): string {
+  if (categories.length) {
+    return categories.map((c) => `${c.category}: ${c.skills.join(', ')}`).join('\n');
+  }
+  return skills.join(', ');
+}
+
+/** Parses `Category: a, b` lines (or plain comma-separated skills) into flat skills + categories. */
+export function parseCategorizedSkillsText(raw: string): { skills: string[]; skillCategories: SkillCategory[] } {
+  const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const hasCategories = lines.some((l) => /^[^:,]{1,40}:\s*.+/.test(l));
+  if (!hasCategories) {
+    const skills = [...new Set(raw.split(',').map((x) => x.trim()).filter(Boolean))];
+    return { skills, skillCategories: skills.length ? categorizeSkillsHeuristic(skills) : [] };
+  }
+  const skillCategories: SkillCategory[] = [];
+  for (const line of lines) {
+    const idx = line.indexOf(':');
+    if (idx > 0) {
+      const category = line.slice(0, idx).trim();
+      const items = [...new Set(line.slice(idx + 1).split(',').map((x) => x.trim()).filter(Boolean))];
+      if (category && items.length) skillCategories.push({ category, skills: items });
+    } else {
+      const items = [...new Set(line.split(',').map((x) => x.trim()).filter(Boolean))];
+      if (items.length) skillCategories.push({ category: 'Other', skills: items });
+    }
+  }
+  const skills = [...new Set(skillCategories.flatMap((c) => c.skills))];
+  return { skills, skillCategories };
 }

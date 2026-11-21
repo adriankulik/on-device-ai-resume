@@ -4,12 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { StorageService } from '../core/storage.service';
 import { VaultService } from '../core/vault.service';
 import { AiService } from '../core/ai.service';
-import {
-  SavedResumeSnapshot,
-  SavedResumesService,
-  downloadJsonFile,
-} from '../core/saved-resumes.service';
-import { normalizeVault } from '../core/vault.model';
+import { SavedResumeSnapshot, SavedResumesService } from '../core/saved-resumes.service';
+import { exportVaultBackup, importVaultBackupText } from '../core/backup.util';
+import { formatCategorizedSkillsText, parseCategorizedSkillsText } from '../core/vault.model';
 import { ButtonComponent } from '../button/button.component';
 import { ModalComponent } from '../modal/modal.component';
 import { CollapsibleComponent } from '../collapsible/collapsible.component';
@@ -81,8 +78,12 @@ export class VaultEditorComponent {
     this.vs.touch();
   }
 
+  readonly formatSkills = formatCategorizedSkillsText;
+
   setSkills(value: string): void {
-    this.vs.vault().skills = value.split(',').map((s) => s.trim()).filter(Boolean);
+    const parsed = parseCategorizedSkillsText(value);
+    this.vs.vault().skills = parsed.skills;
+    this.vs.vault().skillCategories = parsed.skillCategories;
     this.vs.tailoredSkills.set(null);
     this.vs.touch();
   }
@@ -169,13 +170,7 @@ export class VaultEditorComponent {
   }
 
   exportVault(): void {
-    const bundle = {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      vault: this.vs.vault(),
-      savedResumes: this.savedResumes.resumes(),
-    };
-    downloadJsonFile(this.doc, JSON.stringify(bundle, null, 2), 'on-device-ai-resume-backup.json');
+    exportVaultBackup(this.doc, this.vs.vault(), this.savedResumes.resumes());
   }
 
   async importVault(ev: Event): Promise<void> {
@@ -191,19 +186,9 @@ export class VaultEditorComponent {
   }
 
   handleJsonImportText(text: string): void {
-    const parsed = JSON.parse(text) as Record<string, unknown>;
-    if (parsed && typeof parsed === 'object' && 'vault' in parsed && !Array.isArray(parsed)) {
-      this.vs.setVault(normalizeVault(parsed['vault']), true);
-      const count = Array.isArray(parsed['savedResumes'])
-        ? this.savedResumes.replaceAll(parsed['savedResumes'])
-        : 0;
-      this.dialog.set(null);
-      this.flash('ok', `Imported Career Vault and ${count} saved resume(s).`);
-      return;
-    }
-    this.vs.importJson(text);
+    const msg = importVaultBackupText(text, this.vs, this.savedResumes);
     this.dialog.set(null);
-    this.flash('ok', 'Career Vault imported.');
+    this.flash('ok', msg);
   }
 
   triggerImport(): void {

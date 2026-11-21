@@ -1,4 +1,4 @@
-import { MasterVault, normalizeVault } from './vault.model';
+import { MasterVault, categorizeSkillsHeuristic, normalizeVault } from './vault.model';
 
 /**
  * Heuristic/rule-based resume text parser used when Chrome built-in AI is unavailable.
@@ -209,6 +209,7 @@ export function fallbackParseResume(text: string, base: MasterVault): MasterVaul
     education,
     certifications,
     skills,
+    skillCategories: categorizeSkillsHeuristic(skills),
     settings: base.settings,
   };
 
