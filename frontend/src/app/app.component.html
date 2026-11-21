@@ -15,9 +15,9 @@
       >
         About
       </button>
-      @if (ext.isExtension()) {
-        <button app-button type="button" variant="secondary" size="sm" (click)="ext.openInNewTab()" title="Open On-device AI Resume in a full browser tab">
-          Full tab
+      @if (ext.isSidePanel()) {
+        <button app-button type="button" variant="secondary" size="sm" (click)="ext.openInNewTab()" title="Open On-device AI Resume in a standalone popup window">
+          Pop out
         </button>
       }
       <app-theme-toggle />
