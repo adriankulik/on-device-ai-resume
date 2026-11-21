@@ -288,6 +288,32 @@ describe('PreviewComponent', () => {
     expect(el.querySelector('.r-page-break')).toBeNull();
   });
 
+  it('shifts page-break limit down and excludes editor-only controls from overflow in edit mode', async () => {
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    vs.update((v) => {
+      v.experience.push({
+        id: 'exp_1',
+        role: 'Engineer',
+        company: 'Acme',
+        startDate: '2022-01',
+        endDate: 'Present',
+        bullets: [{ id: 'b_1', text: 'Shipped Angular app' }],
+      });
+    });
+    vs.selectAll();
+    comp.editMode.set(true);
+    fixture.detectChanges();
+    await new Promise((r) => setTimeout(r, 30));
+
+    expect(comp.overflow()).toBeFalse();
+    expect(comp.pageBreakTopPx()).toBeGreaterThan(comp.pageHeightPx());
+  });
+
   it('supports switching unit system, paper size presets (US/Europe), and margin presets', async () => {
     await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
     const fixture = TestBed.createComponent(PreviewComponent);
