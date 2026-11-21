@@ -49,24 +49,8 @@
     [badge]="savedResumes.resumes().length ? savedResumes.resumes().length + ' saved' : ''"
   >
     <p class="hint">
-      Open, export, or import point-in-time snapshots of resumes you previously saved.
+      Load a previously saved resume snapshot to edit or export PDF. Use Backup → Export/Import to back up everything.
     </p>
-    <div class="saved-resumes__io">
-      <button
-        app-button
-        type="button"
-        variant="secondary"
-        size="sm"
-        [disabled]="!savedResumes.resumes().length"
-        (click)="exportAllResumes()"
-      >
-        Export all JSON
-      </button>
-      <label class="saved-resumes__import-btn">
-        Import JSON
-        <input type="file" accept="application/json,.json" hidden (change)="importResumes($event)" />
-      </label>
-    </div>
 
     @if (savedResumes.resumes().length === 0) {
       <p class="hint">No saved resumes yet. Use “Save resume” in the Preview tab to store a snapshot.</p>
@@ -80,7 +64,6 @@
             </div>
             <div class="saved-resumes__actions">
               <button app-button type="button" variant="primary" size="sm" (click)="loadPreviousResume(item)">Load</button>
-              <button app-button type="button" variant="secondary" size="sm" (click)="exportSingleResume(item)">Export</button>
               <button app-button type="button" variant="ghost" size="sm" (click)="deletePreviousResume(item.id)">Delete</button>
             </div>
           </li>
@@ -225,29 +208,6 @@
           </button>
         </div>
       </div>
-    </app-modal>
-  }
-
-  @case ('confirm-import-resume') {
-    <app-modal title="Import exported resume?" (closed)="pendingResumeImport.set(null); dialog.set(null)">
-      @if (pendingResumeImport(); as pending) {
-        <div class="confirm-reset-body">
-          <p class="hint">
-            This file contains {{ pending.label }}. Would you like to also fill your Career Vault with its data, or only add it to Previous resumes?
-          </p>
-          <div class="row wrap">
-            <button app-button type="button" variant="primary" (click)="confirmImportResume(true)">
-              Add &amp; fill Career Vault
-            </button>
-            <button app-button type="button" variant="secondary" (click)="confirmImportResume(false)">
-              Only add to Previous resumes
-            </button>
-            <button app-button type="button" variant="ghost" (click)="pendingResumeImport.set(null); dialog.set(null)">
-              Cancel
-            </button>
-          </div>
-        </div>
-      }
     </app-modal>
   }
 

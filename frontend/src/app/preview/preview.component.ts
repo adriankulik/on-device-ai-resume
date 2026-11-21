@@ -13,7 +13,6 @@ import {
   ResumeSnapshotData,
   SavedResumeSnapshot,
   SavedResumesService,
-  downloadJsonFile,
 } from '../core/saved-resumes.service';
 import { VaultService } from '../core/vault.service';
 import {
@@ -851,36 +850,6 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     this.savedResumes.deleteSnapshot(id);
     if (this.activeSnapshotId() === id) {
       this.activeSnapshotId.set(null);
-    }
-  }
-
-  exportSingleSnapshot(item: SavedResumeSnapshot): void {
-    const slug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'resume';
-    downloadJsonFile(this.doc, this.savedResumes.exportSingleJson(item.id), `${slug}.json`);
-  }
-
-  exportAllSnapshots(): void {
-    downloadJsonFile(this.doc, this.savedResumes.exportAllJson(), 'saved-resumes.json');
-  }
-
-  async importSnapshots(event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const { added, updated } = this.savedResumes.importJson(text);
-      this.snapshotMsg.set({
-        ok: true,
-        text: `Imported ${added} new and updated ${updated} saved resume(s).`,
-      });
-    } catch {
-      this.snapshotMsg.set({
-        ok: false,
-        text: 'Could not import JSON. Expected a saved resume object or array.',
-      });
-    } finally {
-      input.value = '';
     }
   }
 }

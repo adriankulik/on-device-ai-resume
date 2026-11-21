@@ -161,6 +161,13 @@ export class SavedResumesService {
     this.persist(next);
   }
 
+  replaceAll(items: unknown[]): number {
+    const normalized = items.map((item) => normalizeSnapshot(item));
+    this.resumes.set(normalized);
+    this.persist(normalized);
+    return normalized.length;
+  }
+
   exportAllJson(): string {
     return JSON.stringify(this.resumes(), null, 2);
   }

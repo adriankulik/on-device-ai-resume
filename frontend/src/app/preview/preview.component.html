@@ -552,23 +552,6 @@
         <p class="msg" [class.error]="!m.ok" role="status">{{ m.text }}</p>
       }
 
-      <div class="saved-resumes__io">
-        <button
-          app-button
-          type="button"
-          variant="secondary"
-          size="sm"
-          [disabled]="!savedResumes.resumes().length"
-          (click)="exportAllSnapshots()"
-        >
-          Export all JSON
-        </button>
-        <label class="saved-resumes__import-btn">
-          Import JSON
-          <input type="file" accept="application/json,.json" hidden (change)="importSnapshots($event)" />
-        </label>
-      </div>
-
       @if (savedResumes.resumes().length === 0) {
         <p class="hint">No saved resume snapshots yet.</p>
       } @else {
@@ -581,7 +564,6 @@
               </div>
               <div class="saved-resumes__actions">
                 <button app-button type="button" variant="primary" size="sm" (click)="loadSavedSnapshot(item)">Load</button>
-                <button app-button type="button" variant="secondary" size="sm" (click)="exportSingleSnapshot(item)">Export</button>
                 <button app-button type="button" variant="ghost" size="sm" (click)="deleteSavedSnapshot(item.id)">Delete</button>
               </div>
             </li>
