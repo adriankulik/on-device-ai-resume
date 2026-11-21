@@ -120,23 +120,39 @@
           <div class="custom-margins-grid">
             <label class="custom-margins-grid__field">
               <span>Top</span>
-              <input type="number" min="0" [max]="s().unitSystem === 'in' ? 2.36 : 60" [step]="s().unitSystem === 'in' ? 0.05 : 1"
-                [ngModel]="customMarginDisplay('topMm')" (ngModelChange)="setCustomMargin('topMm', $event)" />
+              <div class="custom-margin-stepper">
+                <button type="button" aria-label="Decrease top margin" (click)="stepCustomMargin('topMm', -1)">−</button>
+                <input type="number" min="0" [max]="s().unitSystem === 'in' ? 2.36 : 60" [step]="s().unitSystem === 'in' ? 0.05 : 1"
+                  [ngModel]="customMarginDisplay('topMm')" (ngModelChange)="setCustomMargin('topMm', $event)" />
+                <button type="button" aria-label="Increase top margin" (click)="stepCustomMargin('topMm', 1)">+</button>
+              </div>
             </label>
             <label class="custom-margins-grid__field">
               <span>Right</span>
-              <input type="number" min="0" [max]="s().unitSystem === 'in' ? 2.36 : 60" [step]="s().unitSystem === 'in' ? 0.05 : 1"
-                [ngModel]="customMarginDisplay('rightMm')" (ngModelChange)="setCustomMargin('rightMm', $event)" />
+              <div class="custom-margin-stepper">
+                <button type="button" aria-label="Decrease right margin" (click)="stepCustomMargin('rightMm', -1)">−</button>
+                <input type="number" min="0" [max]="s().unitSystem === 'in' ? 2.36 : 60" [step]="s().unitSystem === 'in' ? 0.05 : 1"
+                  [ngModel]="customMarginDisplay('rightMm')" (ngModelChange)="setCustomMargin('rightMm', $event)" />
+                <button type="button" aria-label="Increase right margin" (click)="stepCustomMargin('rightMm', 1)">+</button>
+              </div>
             </label>
             <label class="custom-margins-grid__field">
               <span>Bottom</span>
-              <input type="number" min="0" [max]="s().unitSystem === 'in' ? 2.36 : 60" [step]="s().unitSystem === 'in' ? 0.05 : 1"
-                [ngModel]="customMarginDisplay('bottomMm')" (ngModelChange)="setCustomMargin('bottomMm', $event)" />
+              <div class="custom-margin-stepper">
+                <button type="button" aria-label="Decrease bottom margin" (click)="stepCustomMargin('bottomMm', -1)">−</button>
+                <input type="number" min="0" [max]="s().unitSystem === 'in' ? 2.36 : 60" [step]="s().unitSystem === 'in' ? 0.05 : 1"
+                  [ngModel]="customMarginDisplay('bottomMm')" (ngModelChange)="setCustomMargin('bottomMm', $event)" />
+                <button type="button" aria-label="Increase bottom margin" (click)="stepCustomMargin('bottomMm', 1)">+</button>
+              </div>
             </label>
             <label class="custom-margins-grid__field">
               <span>Left</span>
-              <input type="number" min="0" [max]="s().unitSystem === 'in' ? 2.36 : 60" [step]="s().unitSystem === 'in' ? 0.05 : 1"
-                [ngModel]="customMarginDisplay('leftMm')" (ngModelChange)="setCustomMargin('leftMm', $event)" />
+              <div class="custom-margin-stepper">
+                <button type="button" aria-label="Decrease left margin" (click)="stepCustomMargin('leftMm', -1)">−</button>
+                <input type="number" min="0" [max]="s().unitSystem === 'in' ? 2.36 : 60" [step]="s().unitSystem === 'in' ? 0.05 : 1"
+                  [ngModel]="customMarginDisplay('leftMm')" (ngModelChange)="setCustomMargin('leftMm', $event)" />
+                <button type="button" aria-label="Increase left margin" (click)="stepCustomMargin('leftMm', 1)">+</button>
+              </div>
             </label>
           </div>
         </div>
@@ -155,7 +171,9 @@
         [variant]="editMode() ? 'primary' : 'secondary'"
         size="sm"
         [iconLeading]="editIcon"
+        [iconTrailing]="ext.isSidePanel() && !ext.isPopup() ? externalLinkIcon : undefined"
         [attr.aria-pressed]="editMode()"
+        [title]="ext.isSidePanel() && !ext.isPopup() ? 'Opens resume editor in a popup window' : ''"
         (click)="toggleEditMode()"
       >
         {{ editMode() ? 'Save' : 'Edit resume' }}

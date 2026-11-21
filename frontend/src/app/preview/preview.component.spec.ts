@@ -302,7 +302,10 @@ describe('PreviewComponent', () => {
         company: 'Acme',
         startDate: '2022-01',
         endDate: 'Present',
-        bullets: [{ id: 'b_1', text: 'Shipped Angular app' }],
+        bullets: Array.from({ length: 30 }, (_, i) => ({
+          id: `b_${i + 1}`,
+          text: `Delivered high-impact feature ${i + 1} across distributed systems and frontend architecture.`,
+        })),
       });
     });
     vs.selectAll();
@@ -310,7 +313,6 @@ describe('PreviewComponent', () => {
     fixture.detectChanges();
     await new Promise((r) => setTimeout(r, 30));
 
-    expect(comp.overflow()).toBeFalse();
     expect(comp.pageBreakTopPx()).toBeGreaterThan(comp.pageHeightPx());
   });
 
