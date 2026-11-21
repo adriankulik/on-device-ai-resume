@@ -1,12 +1,12 @@
 import { DOCUMENT } from '@angular/common';
 import { Component, ElementRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
-import { LucideCheck, LucideChevronsRight, LucideDynamicIcon, LucideInfo } from '@lucide/angular';
+import { LucideArrowUpDown, LucideCheck, LucideChevronsRight, LucideDynamicIcon, LucideInfo } from '@lucide/angular';
 import { ButtonComponent } from './button/button.component';
 import { LayoutService, WorkspaceTab } from './core/layout.service';
 import { AiService } from './core/ai.service';
 import { ExtensionService } from './core/extension.service';
 import { VaultService } from './core/vault.service';
-import { SavedResumesService } from './core/saved-resumes.service';
+import { SavedResumeSnapshot, SavedResumesService } from './core/saved-resumes.service';
 import { exportVaultBackup, importVaultBackupText } from './core/backup.util';
 import { VaultEditorComponent } from './vault-editor/vault-editor.component';
 import { TriageComponent } from './triage/triage.component';
@@ -46,6 +46,7 @@ export class AppComponent implements OnInit {
   readonly checkIcon = LucideCheck.icon;
   readonly expandIcon = LucideChevronsRight.icon;
   readonly infoIcon = LucideInfo.icon;
+  readonly backupIcon = LucideArrowUpDown.icon;
   readonly tab = this.layout.activeTab;
   readonly aiSettingsOpen = signal(false);
   readonly aboutOpen = signal(false);
@@ -69,6 +70,13 @@ export class AppComponent implements OnInit {
     };
   });
   readonly headerImportInput = viewChild<ElementRef<HTMLInputElement>>('headerImportInput');
+
+  loadSavedResume(item: SavedResumeSnapshot): void {
+    this.vs.loadResumeSnapshot(item.snapshot);
+    this.savedResumes.activeSnapshotId.set(item.id);
+    this.layout.setActiveTab('preview');
+    this.backupOpen.set(false);
+  }
 
   exportAll(): void {
     exportVaultBackup(this.doc, this.vs.vault(), this.savedResumes.resumes());
