@@ -36,7 +36,7 @@
   --font-mono: 'JetBrains Mono', monospace;
   --spacing-scale: 1;
   --density: 1;
-  --fs: 10pt;
+  --fs: 9pt;
   --sp: calc(var(--spacing-scale) * var(--density));
 
   position: absolute;
@@ -55,7 +55,6 @@
 
   &.compact {
     --density: 0.84;
-    --fs: 9pt;
   }
 
   /* -------------------------------------------------------------------------
@@ -72,11 +71,10 @@
     --text-muted: #64748b;
     --font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --spacing-scale: 1;
-    --fs: 10pt;
+    --fs: 9pt;
 
     &.compact {
       --density: 0.84;
-      --fs: 9pt;
     }
 
     .r-header {
@@ -225,11 +223,10 @@
     --text-muted: #71717a;
     --font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     --spacing-scale: 0.92;
-    --fs: 9pt;
+    --fs: 8.2pt;
 
     &.compact {
       --density: 0.85;
-      --fs: 8.2pt;
     }
 
     .r-header {
@@ -394,11 +391,10 @@
     --text-muted: #6b7280;
     --font-family: 'Lora', Georgia, 'Times New Roman', serif;
     --spacing-scale: 1.05;
-    --fs: 10.2pt;
+    --fs: 9.2pt;
 
     &.compact {
       --density: 0.84;
-      --fs: 9.2pt;
     }
 
     .r-header {
