@@ -93,4 +93,26 @@ describe('OnboardingComponent', () => {
     expect(comp.draft().skills).toEqual(['COBOL']);
     expect(input.value).toBe('');
   });
+
+  it('imports full backup JSON bundle (vault + savedResumes) via importVaultFile', async () => {
+    localStorage.removeItem('ats-resume-builder:saved-resumes');
+    await TestBed.configureTestingModule({ imports: [OnboardingComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(OnboardingComponent);
+    const comp = fixture.componentInstance;
+
+    const bundle = {
+      version: 1,
+      exportedAt: '2026-11-21T00:00:00.000Z',
+      vault: { contact: { fullName: 'Ada Lovelace' }, skills: ['Angular'] },
+      savedResumes: [{ id: 'res_1', name: 'Vstorm', savedAt: '2026-11-21T00:00:00.000Z', snapshot: { contact: { fullName: 'Ada Lovelace' } } }],
+    };
+    const file = new File([JSON.stringify(bundle)], 'backup.json', { type: 'application/json' });
+    const input = { files: [file], value: 'backup.json' } as unknown as HTMLInputElement;
+    await comp.importVaultFile({ target: input } as unknown as Event);
+
+    expect(comp.step()).toBe('review');
+    expect(comp.draft().contact.fullName).toBe('Ada Lovelace');
+    expect(comp.draft().skills).toEqual(['Angular']);
+    localStorage.removeItem('ats-resume-builder:saved-resumes');
+  });
 });
