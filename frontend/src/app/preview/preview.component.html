@@ -191,9 +191,19 @@
         [style.transform]="'scale(' + scale() + ')'"
       >
         <div class="r-margin-zone no-print" [style.top.px]="pageBreakTopPx() - bottomMarginPx()" [style.height.px]="bottomMarginPx()" aria-hidden="true"></div>
+        @if (overflow()) {
+          <div class="r-margin-zone r-margin-zone--top no-print" [style.top.px]="pageBreakTopPx()" [style.height.px]="topMarginPx()" aria-hidden="true"></div>
+        }
         <div class="r-page-break no-print" [style.top.px]="pageBreakTopPx() - 1" aria-hidden="true">
           <span>{{ pageLimitLabel() }}</span>
         </div>
+        @for (brk of extraPageBreaks(); track brk.page) {
+          <div class="r-margin-zone no-print" [style.top.px]="brk.topPx - bottomMarginPx()" [style.height.px]="bottomMarginPx()" aria-hidden="true"></div>
+          <div class="r-margin-zone r-margin-zone--top no-print" [style.top.px]="brk.topPx" [style.height.px]="topMarginPx()" aria-hidden="true"></div>
+          <div class="r-page-break no-print" [style.top.px]="brk.topPx - 1" aria-hidden="true">
+            <span>{{ paperSpec().label }} page {{ brk.page }} limit</span>
+          </div>
+        }
         <header class="r-header">
           @if (showPhoto()) {
             <img class="r-photo" [src]="contact().photoDataUrl" alt="" />
