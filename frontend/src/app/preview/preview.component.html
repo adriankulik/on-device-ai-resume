@@ -600,6 +600,17 @@
               </div>
               <div class="saved-resumes__actions">
                 <button app-button type="button" variant="primary" size="sm" (click)="loadSavedSnapshot(item)">Load</button>
+                <button
+                  app-button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  [disabled]="!!activeSnapshotId() && activeSnapshotId() !== item.id"
+                  [title]="activeSnapshotId() && activeSnapshotId() !== item.id ? 'Cannot overwrite a different resume while another snapshot is loaded' : 'Overwrite this saved resume'"
+                  (click)="overwriteSavedSnapshot(item)"
+                >
+                  Save
+                </button>
                 <button app-button type="button" variant="ghost" size="sm" (click)="deleteSavedSnapshot(item.id)">Delete</button>
               </div>
             </li>
