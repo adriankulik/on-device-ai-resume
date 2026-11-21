@@ -23,34 +23,42 @@ export class ExtensionService {
   );
 
   /**
-   * Opens the application in a full browser tab.
-   * If running in the extension sidepanel, opens the extension's index.html in a new tab.
-   * Otherwise opens the current web URL in a new tab.
+   * Opens the application in a standalone popup window so the user keeps continuity
+   * with their active job-board tab and side panel.
    */
   openInNewTab(query = 'tab=preview'): void {
-    if (this.isExtension() && chrome.tabs?.create) {
-      chrome.tabs.create({ url: chrome.runtime.getURL(`index.html?${query}`) });
-    } else {
-      const url = window.location.href.split('?')[0] + (query ? `?${query}` : '');
-      window.open(url, '_blank', 'noopener,noreferrer');
+    if (this.isExtension()) {
+      const url = chrome.runtime.getURL(`index.html?${query}`);
+      if (chrome.windows?.create) {
+        chrome.windows.create({ url, type: 'popup', width: 1200, height: 860 });
+        return;
+      }
+      if (chrome.tabs?.create) {
+        chrome.tabs.create({ url });
+        return;
+      }
     }
+    const url = window.location.href.split('?')[0] + (query ? `?${query}` : '');
+    window.open(url, 'on-device-ai-resume', 'popup=yes,width=1200,height=860,noopener,noreferrer');
   }
 
   /**
    * Handles PDF export cleanly across all contexts:
    * - In Chrome Extension Side Panel (where window.print() is blocked by Chromium),
-   *   opens the extension in a full browser tab with ?print=1 so the native print dialog opens.
-   * - In standard web mode or full extension tab, triggers window.print().
+   *   opens the extension in a standalone popup window with ?print=1 so the native print dialog opens.
+   * - In standard web mode or popup window, triggers window.print().
    */
   exportPdf(fullName?: string): void {
     if (this.isSidePanel()) {
       const targetUrl = chrome.runtime?.getURL
         ? chrome.runtime.getURL('index.html?print=1')
         : 'index.html?print=1';
-      if (chrome.tabs?.create) {
+      if (chrome.windows?.create) {
+        chrome.windows.create({ url: targetUrl, type: 'popup', width: 960, height: 860 });
+      } else if (chrome.tabs?.create) {
         chrome.tabs.create({ url: targetUrl });
       } else {
-        window.open(targetUrl, '_blank');
+        window.open(targetUrl, 'on-device-ai-resume-print', 'popup=yes,width=960,height=860');
       }
       return;
     }
