@@ -1,10 +1,13 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { Component, ElementRef, OnInit, inject, signal, viewChild } from '@angular/core';
 import { LucideCheck, LucideChevronsRight, LucideDynamicIcon, LucideInfo } from '@lucide/angular';
 import { ButtonComponent } from './button/button.component';
 import { LayoutService, WorkspaceTab } from './core/layout.service';
 import { AiService } from './core/ai.service';
 import { ExtensionService } from './core/extension.service';
 import { VaultService } from './core/vault.service';
+import { SavedResumesService } from './core/saved-resumes.service';
+import { exportVaultBackup, importVaultBackupText } from './core/backup.util';
 import { VaultEditorComponent } from './vault-editor/vault-editor.component';
 import { TriageComponent } from './triage/triage.component';
 import { ThemeToggleComponent } from './theme/theme-toggle.component';
@@ -35,6 +38,8 @@ import { AboutComponent } from './about/about.component';
 })
 export class AppComponent implements OnInit {
   readonly vs = inject(VaultService);
+  readonly savedResumes = inject(SavedResumesService);
+  private readonly doc = inject(DOCUMENT);
   readonly ai = inject(AiService);
   readonly ext = inject(ExtensionService);
   readonly layout = inject(LayoutService);
@@ -44,6 +49,30 @@ export class AppComponent implements OnInit {
   readonly tab = this.layout.activeTab;
   readonly aiSettingsOpen = signal(false);
   readonly aboutOpen = signal(false);
+  readonly backupOpen = signal(false);
+  readonly backupMsg = signal<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  readonly headerImportInput = viewChild<ElementRef<HTMLInputElement>>('headerImportInput');
+
+  exportAll(): void {
+    exportVaultBackup(this.doc, this.vs.vault(), this.savedResumes.resumes());
+  }
+
+  triggerHeaderImport(): void {
+    this.headerImportInput()?.nativeElement.click();
+  }
+
+  async importAll(ev: Event): Promise<void> {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    try {
+      const msg = importVaultBackupText(await file.text(), this.vs, this.savedResumes);
+      this.backupMsg.set({ kind: 'ok', text: msg });
+    } catch {
+      this.backupMsg.set({ kind: 'error', text: 'Invalid backup JSON file.' });
+    }
+  }
 
   readonly closeAiSettings = (): void => {
     this.aiSettingsOpen.set(false);

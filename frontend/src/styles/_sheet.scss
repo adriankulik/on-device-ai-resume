@@ -767,6 +767,16 @@
     }
   }
 
+  .r-skill-cats {
+    display: flex;
+    flex-direction: column;
+    gap: calc(0.8mm * var(--sp));
+  }
+
+  .r-skill-cat {
+    margin: 0;
+  }
+
   .r-certs,
   .r-skills-edit {
     display: flex;

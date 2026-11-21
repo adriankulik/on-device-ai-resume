@@ -544,6 +544,12 @@
                 />
                 <button type="button" class="r-edit-btn r-edit-btn--primary" (click)="addResumeSkill()">+ Add</button>
               </div>
+            } @else if (categorizedSkills().length) {
+              <div class="r-skill-cats">
+                @for (grp of categorizedSkills(); track grp.category) {
+                  <p class="r-skill-cat"><strong>{{ grp.category }}:</strong> {{ grp.skills.join(', ') }}</p>
+                }
+              </div>
             } @else {
               <p>{{ skills().join(', ') }}</p>
             }

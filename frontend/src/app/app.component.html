@@ -15,11 +15,16 @@
       >
         About
       </button>
-      @if (ext.isSidePanel()) {
-        <button app-button type="button" variant="secondary" size="sm" (click)="ext.openInNewTab()" title="Open On-device AI Resume in a standalone popup window">
-          Pop out
-        </button>
-      }
+      <button
+        app-button
+        type="button"
+        variant="secondary"
+        size="sm"
+        (click)="backupMsg.set(null); backupOpen.set(true)"
+        title="Import or export your Career Vault and saved resumes"
+      >
+        Import / Export
+      </button>
       <app-theme-toggle />
     </div>
   </div>
@@ -105,5 +110,19 @@
 @if (aboutOpen()) {
   <app-modal title="About On-device AI Resume" (closed)="aboutOpen.set(false)">
     <app-about (closed)="aboutOpen.set(false)" />
+  </app-modal>
+}
+
+@if (backupOpen()) {
+  <app-modal title="Import / Export" (closed)="backupOpen.set(false)">
+    <div class="row wrap">
+      <button app-button type="button" variant="secondary" (click)="exportAll()">Export (.json)</button>
+      <button app-button type="button" variant="secondary" (click)="triggerHeaderImport()">Import (.json)</button>
+      <input #headerImportInput type="file" accept="application/json,.json" hidden (change)="importAll($event)" />
+    </div>
+    <p class="hint">Exports and imports your Master Career Vault and all saved resumes in a single JSON file.</p>
+    @if (backupMsg(); as m) {
+      <p class="msg" [class.error]="m.kind === 'error'" role="status">{{ m.text }}</p>
+    }
   </app-modal>
 }

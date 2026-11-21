@@ -21,6 +21,7 @@ import {
   MARGIN_PRESETS,
   MarginPresetId,
   PAPER_SIZES,
+  groupSkillsByCategory,
   PaperSizeId,
   THEMES,
   ThemeName,
@@ -166,6 +167,7 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
 
   readonly summary = computed(() => (this.vs.hiddenSummary() ? '' : (this.vs.tailoredSummary() ?? this.vs.vault().summary)));
   readonly skills = computed(() => this.vs.tailoredSkills() ?? this.vs.vault().skills);
+  readonly categorizedSkills = computed(() => groupSkillsByCategory(this.skills(), this.vs.vault().skillCategories ?? []));
 
   /** Contact details split into email/phone/location and web links */
   readonly emailLink = computed(() => {
@@ -244,9 +246,25 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
 
       const skillsEdit = clone.querySelector('.r-skills-edit');
       if (skillsEdit?.parentElement) {
-        const p = this.doc.createElement('p');
-        p.textContent = this.skills().join(', ');
-        skillsEdit.parentElement.replaceChild(p, skillsEdit);
+        const cats = this.categorizedSkills();
+        if (cats.length) {
+          const wrap = this.doc.createElement('div');
+          wrap.className = 'r-skill-cats';
+          for (const grp of cats) {
+            const p = this.doc.createElement('p');
+            p.className = 'r-skill-cat';
+            const strong = this.doc.createElement('strong');
+            strong.textContent = `${grp.category}: `;
+            p.appendChild(strong);
+            p.appendChild(this.doc.createTextNode(grp.skills.join(', ')));
+            wrap.appendChild(p);
+          }
+          skillsEdit.parentElement.replaceChild(wrap, skillsEdit);
+        } else {
+          const p = this.doc.createElement('p');
+          p.textContent = this.skills().join(', ');
+          skillsEdit.parentElement.replaceChild(p, skillsEdit);
+        }
       }
       clone.querySelectorAll('.no-print').forEach((el) => el.remove());
 
