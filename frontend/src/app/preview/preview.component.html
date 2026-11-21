@@ -191,6 +191,7 @@
         [style.transform]="'scale(' + scale() + ')'"
       >
         @if (editMode() && s().strictOnePage) {
+          <div class="r-margin-zone no-print" [style.top.px]="pageBreakTopPx() - bottomMarginPx()" [style.height.px]="bottomMarginPx()" aria-hidden="true"></div>
           <div class="r-page-break no-print" [style.top.px]="pageBreakTopPx() - 1" aria-hidden="true">
             <span>{{ pageLimitLabel() }}</span>
           </div>
