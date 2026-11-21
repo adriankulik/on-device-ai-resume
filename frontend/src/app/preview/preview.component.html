@@ -1,9 +1,11 @@
-@let v = vs.vault();
 <div class="panel-body preview-panel">
   <div class="toolbar no-print">
     <div class="toolbar__head">
       <h2 class="panel-title">Live A4 Preview</h2>
       <div class="toolbar__actions">
+        <button app-button type="button" variant="secondary" size="md" (click)="openSavedModal()">
+          Saved resumes{{ savedResumes.resumes().length ? ' (' + savedResumes.resumes().length + ')' : '' }}
+        </button>
         @if (!editMode()) {
           <button app-button type="button" variant="primary" size="md" [iconLeading]="exportIcon" (click)="print()">Export PDF</button>
         }
@@ -138,10 +140,10 @@
         }
         <header class="r-header">
           @if (showPhoto()) {
-            <img class="r-photo" [src]="v.contact.photoDataUrl" alt="" />
+            <img class="r-photo" [src]="contact().photoDataUrl" alt="" />
           }
           <div class="r-id">
-            <h1>{{ v.contact.fullName || 'Your Name' }}</h1>
+            <h1>{{ contact().fullName || 'Your Name' }}</h1>
             <div class="r-contact">
               @if (emailLink() || phoneLink() || locationText() || linkedinLink() || githubLink() || contactLinks().length) {
                 <div class="r-contact__row">
@@ -480,3 +482,73 @@
     </div>
   </div>
 </div>
+
+@if (savedModalOpen()) {
+  <app-modal title="Saved Resumes Vault" (closed)="savedModalOpen.set(false)">
+    <div class="saved-resumes-modal">
+      <p class="hint">
+        Save point-in-time snapshots of tailored resumes you submitted. Loading a snapshot lets you tweak or add bullets without overwriting your Master Career Vault.
+      </p>
+
+      <div class="saved-resumes__save-bar">
+        <input
+          type="text"
+          placeholder="Snapshot name (e.g. Acme — Senior Engineer)"
+          aria-label="Snapshot name"
+          [ngModel]="snapshotNameDraft()"
+          (ngModelChange)="snapshotNameDraft.set($event)"
+          (keydown.enter)="saveCurrentSnapshot(false)"
+        />
+        <button app-button type="button" variant="primary" size="sm" (click)="saveCurrentSnapshot(false)">
+          Save new
+        </button>
+        @if (activeSnapshotId()) {
+          <button app-button type="button" variant="secondary" size="sm" (click)="saveCurrentSnapshot(true)">
+            Update loaded
+          </button>
+        }
+      </div>
+
+      @if (snapshotMsg(); as m) {
+        <p class="msg" [class.error]="!m.ok" role="status">{{ m.text }}</p>
+      }
+
+      <div class="saved-resumes__io">
+        <button
+          app-button
+          type="button"
+          variant="secondary"
+          size="sm"
+          [disabled]="!savedResumes.resumes().length"
+          (click)="exportAllSnapshots()"
+        >
+          Export all JSON
+        </button>
+        <label class="saved-resumes__import-btn">
+          Import JSON
+          <input type="file" accept="application/json,.json" hidden (change)="importSnapshots($event)" />
+        </label>
+      </div>
+
+      @if (savedResumes.resumes().length === 0) {
+        <p class="hint">No saved resume snapshots yet.</p>
+      } @else {
+        <ul class="saved-resumes__list">
+          @for (item of savedResumes.resumes(); track item.id) {
+            <li class="saved-resumes__item" [class.active]="activeSnapshotId() === item.id">
+              <div class="saved-resumes__meta">
+                <strong>{{ item.name }}</strong>
+                <span>{{ item.savedAt.slice(0, 10) }} · {{ item.snapshot.experience.length }} role(s)</span>
+              </div>
+              <div class="saved-resumes__actions">
+                <button app-button type="button" variant="primary" size="sm" (click)="loadSavedSnapshot(item)">Load</button>
+                <button app-button type="button" variant="secondary" size="sm" (click)="exportSingleSnapshot(item)">Export</button>
+                <button app-button type="button" variant="ghost" size="sm" (click)="deleteSavedSnapshot(item.id)">Delete</button>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </app-modal>
+}
