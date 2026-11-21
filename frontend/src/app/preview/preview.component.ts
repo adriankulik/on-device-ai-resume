@@ -400,6 +400,17 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     });
   }
 
+  /** Vault bullets of this role that are not currently on the resume. */
+  availableVaultBullets(expId: string): { id: string; text: string }[] {
+    const sel = this.vs.selectedBulletIds();
+    const exp = this.vs.vault().experience.find((x) => x.id === expId);
+    return exp ? exp.bullets.filter((b) => !sel.has(b.id)) : [];
+  }
+
+  readdVaultBullet(bulletId: string): void {
+    if (bulletId) this.vs.toggleBullet(bulletId, true);
+  }
+
   removeResumeBullet(expId: string, bulletId: string): void {
     const inOverlay = (this.vs.resumeOnlyBullets()[expId] ?? []).some((b) => b.id === bulletId);
     if (inOverlay) {
