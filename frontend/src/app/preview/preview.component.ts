@@ -102,6 +102,11 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     const m = this.marginSpec();
     return `${m.topBottomMm}mm ${m.leftRightMm}mm`;
   });
+  readonly topMarginPx = computed(() => {
+    const st = this.s();
+    const mm = st.marginPreset === 'custom' ? st.customMargins.topMm : this.marginSpec().topBottomMm;
+    return (Number(mm) || 0) * MM_PX;
+  });
   readonly bottomMarginPx = computed(() => {
     const st = this.s();
     const mm = st.marginPreset === 'custom' ? st.customMargins.bottomMm : this.marginSpec().topBottomMm;
@@ -140,18 +145,31 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   readonly printableHeight = signal(PAPER_SIZES.a4.heightMm * MM_PX);
   readonly pageBreakTopPx = signal(PAPER_SIZES.a4.heightMm * MM_PX);
   readonly overflow = computed(() => this.printableHeight() > this.pageHeightPx() + 1);
+  readonly extraPageBreaks = computed(() => {
+    const pageH = this.pageHeightPx();
+    const total = this.printableHeight();
+    const firstTop = this.pageBreakTopPx();
+    const breaks: { page: number; topPx: number }[] = [];
+    let page = 2;
+    while (pageH > 0 && page * pageH < total - 1) {
+      breaks.push({ page, topPx: firstTop + (page - 1) * pageH });
+      page++;
+    }
+    return breaks;
+  });
   private pageStyleEl: HTMLStyleElement | null = null;
   private measureLayout: (() => void) | null = null;
 
   constructor() {
     effect(() => {
       const p = this.paperSpec();
+      const pad = this.sheetPadding();
       if (!this.pageStyleEl) {
         this.pageStyleEl = this.doc.createElement('style');
         this.pageStyleEl.id = 'resume-page-size-rule';
         this.doc.head.appendChild(this.pageStyleEl);
       }
-      this.pageStyleEl.textContent = `@page { size: ${p.widthMm}mm ${p.heightMm}mm; margin: 0; }`;
+      this.pageStyleEl.textContent = `@page { size: ${p.widthMm}mm ${p.heightMm}mm; margin: ${pad}; }`;
     });
     effect(() => {
       this.editMode();

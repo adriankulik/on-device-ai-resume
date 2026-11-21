@@ -705,6 +705,11 @@
     border-top: 1px dotted #dc2626;
     pointer-events: none;
     z-index: 4;
+
+    &--top {
+      border-top: none;
+      border-bottom: 1px dotted #dc2626;
+    }
   }
 
   .r-vault-select {
@@ -971,7 +976,10 @@
   .sheet {
     position: static !important;
     transform: none !important;
-    margin: 0 auto !important;
+    width: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
     box-sizing: border-box !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
