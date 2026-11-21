@@ -29,7 +29,14 @@ export interface SavedResumeSnapshot {
   snapshot: ResumeSnapshotData;
 }
 
-function normalizeSnapshot(raw: unknown): SavedResumeSnapshot {
+export function isSavedResumePayload(parsed: unknown): boolean {
+  if (Array.isArray(parsed)) return parsed.length > 0;
+  if (!parsed || typeof parsed !== 'object') return false;
+  const r = parsed as Record<string, unknown>;
+  return typeof r['snapshot'] === 'object' && r['snapshot'] !== null;
+}
+
+export function normalizeSnapshot(raw: unknown): SavedResumeSnapshot {
   if (!raw || typeof raw !== 'object') {
     throw new Error('Invalid saved resume snapshot');
   }

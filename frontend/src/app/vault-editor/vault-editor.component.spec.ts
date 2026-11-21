@@ -175,4 +175,41 @@ describe('VaultEditorComponent', () => {
     moveBulletUpBtn?.click();
     expect(vs.vault().experience[1].bullets.map((b) => b.id)).toEqual(['b_2', 'b_1']);
   });
+
+  it('prompts when importing an exported resume JSON and optionally fills the Career Vault', async () => {
+    localStorage.removeItem('ats-resume-builder:saved-resumes');
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    const fixture = TestBed.createComponent(VaultEditorComponent);
+    const comp = fixture.componentInstance;
+    await comp.savedResumes.ready;
+
+    const exportedResume = JSON.stringify({
+      id: 'res_test_1',
+      name: 'Acme — Staff Engineer',
+      savedAt: '2026-11-21T00:00:00.000Z',
+      snapshot: {
+        contact: { fullName: 'Ada Lovelace', email: '', phone: '', location: '', linkedin: '', github: '', links: [], photoDataUrl: '' },
+        summary: 'Imported resume summary',
+        experience: [],
+        education: [],
+        certifications: [],
+        skills: ['TypeScript'],
+      },
+    });
+
+    comp.handleJsonImportText(exportedResume);
+    expect(comp.dialog()).toBe('confirm-import-resume');
+
+    comp.confirmImportResume(false);
+    expect(comp.savedResumes.resumes().length).toBe(1);
+    expect(vs.vault().summary).not.toBe('Imported resume summary');
+
+    comp.handleJsonImportText(exportedResume);
+    comp.confirmImportResume(true);
+    expect(vs.vault().summary).toBe('Imported resume summary');
+    expect(vs.vault().contact.fullName).toBe('Ada Lovelace');
+    localStorage.removeItem('ats-resume-builder:saved-resumes');
+  });
 });
