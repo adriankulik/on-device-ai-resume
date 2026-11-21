@@ -6,9 +6,18 @@
         <button app-button type="button" variant="secondary" size="md" (click)="openSavedModal()">
           Saved resumes{{ savedResumes.resumes().length ? ' (' + savedResumes.resumes().length + ')' : '' }}
         </button>
-        @if (!editMode()) {
-          <button app-button type="button" variant="primary" size="md" [iconLeading]="exportIcon" (click)="print()">Export PDF</button>
-        }
+        <button
+          app-button
+          type="button"
+          variant="primary"
+          size="md"
+          [iconLeading]="exportIcon"
+          [disabled]="editMode()"
+          [title]="editMode() ? 'Save your edits before exporting PDF' : ''"
+          (click)="print()"
+        >
+          Export PDF
+        </button>
       </div>
     </div>
 

@@ -313,7 +313,7 @@ describe('PreviewComponent', () => {
     expect(comp.pageLimitLabel()).toBe('US Letter page 1 limit (11 in)');
   });
 
-  it('hides Export PDF button while editMode is active', async () => {
+  it('disables Export PDF button while editMode is active', async () => {
     await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
     const fixture = TestBed.createComponent(PreviewComponent);
     const comp = fixture.componentInstance;
@@ -322,11 +322,15 @@ describe('PreviewComponent', () => {
     fixture.detectChanges();
 
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('.toolbar__actions')?.textContent).toContain('Export PDF');
+    const exportBtn = Array.from(el.querySelectorAll('.toolbar__actions button')).find((b) =>
+      b.textContent?.includes('Export PDF'),
+    ) as HTMLButtonElement | undefined;
+    expect(exportBtn).toBeTruthy();
+    expect(exportBtn?.disabled).toBeFalse();
 
     comp.editMode.set(true);
     fixture.detectChanges();
-    expect(el.querySelector('.toolbar__actions')?.textContent).not.toContain('Export PDF');
+    expect(exportBtn?.disabled).toBeTrue();
   });
 
   it('saves, loads, and updates a point-in-time resume snapshot without mutating the Master Vault', async () => {
