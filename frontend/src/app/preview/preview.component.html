@@ -143,7 +143,7 @@
         [style.transform]="'scale(' + scale() + ')'"
       >
         @if (editMode() && s().strictOnePage) {
-          <div class="r-page-break no-print" [style.top]="'calc(' + paperSpec().heightMm + 'mm - 1px)'" aria-hidden="true">
+          <div class="r-page-break no-print" [style.top.px]="pageBreakTopPx() - 1" aria-hidden="true">
             <span>{{ pageLimitLabel() }}</span>
           </div>
         }

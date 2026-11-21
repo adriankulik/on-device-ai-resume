@@ -119,8 +119,11 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
 
   readonly scale = signal(1);
   readonly sheetHeight = signal(PAPER_SIZES.a4.heightMm * MM_PX);
-  readonly overflow = computed(() => this.sheetHeight() > this.pageHeightPx() + 1);
+  readonly printableHeight = signal(PAPER_SIZES.a4.heightMm * MM_PX);
+  readonly pageBreakTopPx = signal(PAPER_SIZES.a4.heightMm * MM_PX);
+  readonly overflow = computed(() => this.printableHeight() > this.pageHeightPx() + 1);
   private pageStyleEl: HTMLStyleElement | null = null;
+  private measureLayout: (() => void) | null = null;
 
   constructor() {
     effect(() => {
@@ -131,6 +134,14 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
         this.doc.head.appendChild(this.pageStyleEl);
       }
       this.pageStyleEl.textContent = `@page { size: ${p.widthMm}mm ${p.heightMm}mm; margin: 0; }`;
+    });
+    effect(() => {
+      this.editMode();
+      this.paperSpec();
+      this.marginSpec();
+      if (this.measureLayout) {
+        queueMicrotask(() => this.measureLayout?.());
+      }
     });
   }
 
@@ -192,10 +203,44 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     const update = () => {
-      const w = this.stage().nativeElement.clientWidth;
+      const stageEl = this.stage().nativeElement;
+      const sheetEl = this.sheet().nativeElement;
+      const w = stageEl.clientWidth;
+      const pageH = this.pageHeightPx();
       this.scale.set(Math.min(1, Math.max(0.3, (w - 8) / this.pageWidthPx())));
-      this.sheetHeight.set(this.sheet().nativeElement.offsetHeight);
+
+      const totalH = sheetEl.offsetHeight;
+      this.sheetHeight.set(totalH);
+
+      if (!this.editMode()) {
+        this.printableHeight.set(totalH);
+        this.pageBreakTopPx.set(pageH);
+        return;
+      }
+
+      // Exclude block-level editor-only controls (.no-print) so edit buttons/forms
+      // don't trigger false 1-page overflow or misplace the page-1 limit line.
+      let extraTotal = 0;
+      let extraAboveLimit = 0;
+      const editorBlocks = sheetEl.querySelectorAll<HTMLElement>(
+        '.r-inline-add.no-print, .r-inline-form.no-print, .r-skills-edit.no-print',
+      );
+      editorBlocks.forEach((el) => {
+        const style = getComputedStyle(el);
+        const h =
+          el.offsetHeight +
+          (parseFloat(style.marginTop || '0') || 0) +
+          (parseFloat(style.marginBottom || '0') || 0);
+        extraTotal += h;
+        if (el.offsetTop < pageH + extraAboveLimit) {
+          extraAboveLimit += h;
+        }
+      });
+
+      this.printableHeight.set(Math.max(pageH, totalH - extraTotal));
+      this.pageBreakTopPx.set(pageH + extraAboveLimit);
     };
+    this.measureLayout = update;
     this.ro = new ResizeObserver(() => queueMicrotask(update));
     this.ro.observe(this.stage().nativeElement);
     this.ro.observe(this.sheet().nativeElement);
