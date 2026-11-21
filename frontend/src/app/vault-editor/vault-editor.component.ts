@@ -8,8 +8,6 @@ import {
   SavedResumeSnapshot,
   SavedResumesService,
   downloadJsonFile,
-  isSavedResumePayload,
-  normalizeSnapshot,
 } from '../core/saved-resumes.service';
 import { normalizeVault } from '../core/vault.model';
 import { ButtonComponent } from '../button/button.component';
@@ -26,8 +24,7 @@ export type EditorDialog =
   | 'education'
   | 'certifications'
   | 'skills'
-  | 'confirm-reset'
-  | 'confirm-import-resume';
+  | 'confirm-reset';
 
 const MAX_PHOTO_PX = 400;
 const RAW_KEY = 'raw-resume-text';
@@ -57,11 +54,6 @@ export class VaultEditorComponent {
   readonly rawText = signal('');
   readonly message = signal<{ kind: 'ok' | 'error'; text: string } | null>(null);
   readonly parsing = signal(false);
-  readonly pendingResumeImport = signal<{
-    raw: string;
-    label: string;
-    firstSnapshot: SavedResumeSnapshot;
-  } | null>(null);
 
   readonly parsingMessages = [
     'Parsing resume structure…',
@@ -177,13 +169,13 @@ export class VaultEditorComponent {
   }
 
   exportVault(): void {
-    const blob = new Blob([this.vs.exportJson()], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'resume-vault.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    const bundle = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      vault: this.vs.vault(),
+      savedResumes: this.savedResumes.resumes(),
+    };
+    downloadJsonFile(this.doc, JSON.stringify(bundle, null, 2), 'on-device-ai-resume-backup.json');
   }
 
   async importVault(ev: Event): Promise<void> {
@@ -192,45 +184,26 @@ export class VaultEditorComponent {
     input.value = '';
     if (!file) return;
     try {
-      const text = await file.text();
-      this.handleJsonImportText(text);
+      this.handleJsonImportText(await file.text());
     } catch {
-      this.flash('error', 'Invalid JSON file.');
+      this.flash('error', 'Invalid backup JSON file.');
     }
   }
 
   handleJsonImportText(text: string): void {
-    const parsed = JSON.parse(text) as unknown;
-    if (isSavedResumePayload(parsed)) {
-      const firstRaw = Array.isArray(parsed) ? parsed[0] : parsed;
-      const firstSnapshot = normalizeSnapshot(firstRaw);
-      const label = Array.isArray(parsed)
-        ? `${parsed.length} saved resume(s)`
-        : `"${firstSnapshot.name}"`;
-      this.pendingResumeImport.set({ raw: text, label, firstSnapshot });
-      this.dialog.set('confirm-import-resume');
+    const parsed = JSON.parse(text) as Record<string, unknown>;
+    if (parsed && typeof parsed === 'object' && 'vault' in parsed && !Array.isArray(parsed)) {
+      this.vs.setVault(normalizeVault(parsed['vault']), true);
+      const count = Array.isArray(parsed['savedResumes'])
+        ? this.savedResumes.replaceAll(parsed['savedResumes'])
+        : 0;
+      this.dialog.set(null);
+      this.flash('ok', `Imported Career Vault and ${count} saved resume(s).`);
       return;
     }
     this.vs.importJson(text);
     this.dialog.set(null);
-    this.flash('ok', 'Career vault imported.');
-  }
-
-  confirmImportResume(fillVault: boolean): void {
-    const pending = this.pendingResumeImport();
-    if (!pending) return;
-    const { added, updated } = this.savedResumes.importJson(pending.raw);
-    if (fillVault) {
-      this.vs.setVault(normalizeVault(pending.firstSnapshot.snapshot), true);
-    }
-    this.pendingResumeImport.set(null);
-    this.dialog.set(null);
-    this.flash(
-      'ok',
-      fillVault
-        ? `Imported ${added} new / ${updated} updated resume(s) and filled Career Vault.`
-        : `Imported ${added} new / ${updated} updated resume(s) into Previous resumes.`,
-    );
+    this.flash('ok', 'Career Vault imported.');
   }
 
   triggerImport(): void {
@@ -253,27 +226,6 @@ export class VaultEditorComponent {
     this.vs.loadResumeSnapshot(item.snapshot);
     this.savedResumes.activeSnapshotId.set(item.id);
     this.layout.setActiveTab('preview');
-  }
-
-  exportSingleResume(item: SavedResumeSnapshot): void {
-    const slug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'resume';
-    downloadJsonFile(this.doc, this.savedResumes.exportSingleJson(item.id), `${slug}.json`);
-  }
-
-  exportAllResumes(): void {
-    downloadJsonFile(this.doc, this.savedResumes.exportAllJson(), 'saved-resumes.json');
-  }
-
-  async importResumes(ev: Event): Promise<void> {
-    const input = ev.target as HTMLInputElement;
-    const file = input.files?.[0];
-    input.value = '';
-    if (!file) return;
-    try {
-      this.handleJsonImportText(await file.text());
-    } catch {
-      this.flash('error', 'Invalid saved resumes JSON file.');
-    }
   }
 
   deletePreviousResume(id: string): void {

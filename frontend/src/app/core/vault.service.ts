@@ -11,6 +11,15 @@ interface SavedTailoredState {
   selectedBulletIds?: string[];
   tailoredSummary?: string | null;
   tailoredSkills?: string[] | null;
+  resumeOnlyBullets?: Record<string, Bullet[]>;
+  resumeBulletOverrides?: Record<string, string>;
+  resumeOnlyExperience?: Experience[];
+  resumeOnlyEducation?: Education[];
+  hiddenEducationIds?: string[];
+  resumeOnlyCertifications?: Certification[];
+  hiddenCertificationIds?: string[];
+  hiddenSummary?: boolean;
+  snapshotContact?: Contact | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -61,15 +70,22 @@ export class VaultService {
       }
     });
     effect(() => {
-      const summary = this.tailoredSummary();
-      const skills = this.tailoredSkills();
-      const selected = Array.from(this.selectedBulletIds());
+      const payload: SavedTailoredState = {
+        selectedBulletIds: Array.from(this.selectedBulletIds()),
+        tailoredSummary: this.tailoredSummary(),
+        tailoredSkills: this.tailoredSkills(),
+        resumeOnlyBullets: this.resumeOnlyBullets(),
+        resumeBulletOverrides: this.resumeBulletOverrides(),
+        resumeOnlyExperience: this.resumeOnlyExperience(),
+        resumeOnlyEducation: this.resumeOnlyEducation(),
+        hiddenEducationIds: Array.from(this.hiddenEducationIds()),
+        resumeOnlyCertifications: this.resumeOnlyCertifications(),
+        hiddenCertificationIds: Array.from(this.hiddenCertificationIds()),
+        hiddenSummary: this.hiddenSummary(),
+        snapshotContact: this.snapshotContact(),
+      };
       if (this.loaded() && !this.pristine() && !this.syncingExternal) {
-        this.persistKey(TAILORED_STATE_KEY, {
-          selectedBulletIds: selected,
-          tailoredSummary: summary,
-          tailoredSkills: skills,
-        });
+        this.persistKey(TAILORED_STATE_KEY, payload);
       }
     });
   }
@@ -101,15 +117,49 @@ export class VaultService {
       } else if (key === ONBOARDED_KEY) {
         this.onboarded.set(Boolean(newValue));
       } else if (key === TAILORED_STATE_KEY) {
-        const tailored = (newValue ?? {}) as SavedTailoredState;
-        if (Array.isArray(tailored.selectedBulletIds)) {
-          this.selectedBulletIds.set(new Set(tailored.selectedBulletIds));
-        }
-        this.tailoredSummary.set(tailored.tailoredSummary ?? null);
-        this.tailoredSkills.set(Array.isArray(tailored.tailoredSkills) ? tailored.tailoredSkills : null);
+        this.applyTailoredState((newValue ?? {}) as SavedTailoredState);
       }
     } finally {
       this.syncingExternal = false;
+    }
+  }
+
+  private applyTailoredState(tailored: SavedTailoredState): void {
+    if (Array.isArray(tailored.selectedBulletIds)) {
+      this.selectedBulletIds.set(new Set(tailored.selectedBulletIds));
+    }
+    if (tailored.tailoredSummary !== undefined) {
+      this.tailoredSummary.set(tailored.tailoredSummary);
+    }
+    if (tailored.tailoredSkills !== undefined) {
+      this.tailoredSkills.set(Array.isArray(tailored.tailoredSkills) ? tailored.tailoredSkills : null);
+    }
+    if (tailored.resumeOnlyBullets && typeof tailored.resumeOnlyBullets === 'object') {
+      this.resumeOnlyBullets.set(tailored.resumeOnlyBullets);
+    }
+    if (tailored.resumeBulletOverrides && typeof tailored.resumeBulletOverrides === 'object') {
+      this.resumeBulletOverrides.set(tailored.resumeBulletOverrides);
+    }
+    if (Array.isArray(tailored.resumeOnlyExperience)) {
+      this.resumeOnlyExperience.set(tailored.resumeOnlyExperience);
+    }
+    if (Array.isArray(tailored.resumeOnlyEducation)) {
+      this.resumeOnlyEducation.set(tailored.resumeOnlyEducation);
+    }
+    if (Array.isArray(tailored.hiddenEducationIds)) {
+      this.hiddenEducationIds.set(new Set(tailored.hiddenEducationIds));
+    }
+    if (Array.isArray(tailored.resumeOnlyCertifications)) {
+      this.resumeOnlyCertifications.set(tailored.resumeOnlyCertifications);
+    }
+    if (Array.isArray(tailored.hiddenCertificationIds)) {
+      this.hiddenCertificationIds.set(new Set(tailored.hiddenCertificationIds));
+    }
+    if (typeof tailored.hiddenSummary === 'boolean') {
+      this.hiddenSummary.set(tailored.hiddenSummary);
+    }
+    if (tailored.snapshotContact !== undefined) {
+      this.snapshotContact.set(tailored.snapshotContact);
     }
   }
 
@@ -128,15 +178,7 @@ export class VaultService {
       }
 
       if (tailored) {
-        if (Array.isArray(tailored.selectedBulletIds)) {
-          this.selectedBulletIds.set(new Set(tailored.selectedBulletIds));
-        }
-        if (tailored.tailoredSummary !== undefined) {
-          this.tailoredSummary.set(tailored.tailoredSummary);
-        }
-        if (Array.isArray(tailored.tailoredSkills)) {
-          this.tailoredSkills.set(tailored.tailoredSkills);
-        }
+        this.applyTailoredState(tailored);
       }
     } catch (e) {
       console.warn('Vault load failed, starting with empty vault', e);
