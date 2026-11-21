@@ -41,7 +41,7 @@
 
         <div class="sub-actions">
           <input #vaultImportInput type="file" accept="application/json,.json" hidden (change)="importVaultFile($event)" />
-          <button app-button type="button" variant="ghost" size="sm" (click)="triggerImport()">
+          <button app-button type="button" variant="ghost" size="sm" (click)="openImportExport.emit()">
             Import exported vault (.json)
           </button>
         </div>
