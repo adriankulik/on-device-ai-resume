@@ -22,6 +22,12 @@ export class ExtensionService {
           !window.location.search.includes('tab=1'))),
   );
 
+  /** True when running inside a popped-out standalone window (`?tab=` or `?print=`). */
+  readonly isPopup = signal<boolean>(
+    typeof window !== 'undefined' &&
+      (window.location.search.includes('tab=') || window.location.search.includes('print=')),
+  );
+
   /**
    * Opens the application in a standalone popup window so the user keeps continuity
    * with their active job-board tab and side panel.
@@ -30,7 +36,7 @@ export class ExtensionService {
     if (this.isExtension()) {
       const url = chrome.runtime.getURL(`index.html?${query}`);
       if (chrome.windows?.create) {
-        chrome.windows.create({ url, type: 'popup', width: 1200, height: 860 });
+        chrome.windows.create({ url, type: 'popup', width: 960, height: 860 });
         return;
       }
       if (chrome.tabs?.create) {
@@ -39,7 +45,7 @@ export class ExtensionService {
       }
     }
     const url = window.location.href.split('?')[0] + (query ? `?${query}` : '');
-    window.open(url, 'on-device-ai-resume', 'popup=yes,width=1200,height=860,noopener,noreferrer');
+    window.open(url, 'on-device-ai-resume', 'popup=yes,width=960,height=860,noopener,noreferrer');
   }
 
   /**
