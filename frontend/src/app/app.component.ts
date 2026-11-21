@@ -74,7 +74,19 @@ export class AppComponent implements OnInit {
   loadSavedResume(item: SavedResumeSnapshot): void {
     this.vs.loadResumeSnapshot(item.snapshot);
     this.savedResumes.activeSnapshotId.set(item.id);
+    if (!this.vs.onboarded()) {
+      this.vs.completeOnboarding();
+    }
+    this.layout.markStepCompleted('vault');
     this.layout.setActiveTab('preview');
+    this.backupOpen.set(false);
+  }
+
+  continueToVault(): void {
+    if (!this.vs.onboarded()) {
+      this.vs.completeOnboarding();
+    }
+    this.layout.setActiveTab('vault');
     this.backupOpen.set(false);
   }
 

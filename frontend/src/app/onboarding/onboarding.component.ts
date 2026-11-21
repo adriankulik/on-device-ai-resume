@@ -1,4 +1,4 @@
-import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, inject, output, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LucideSparkles, LucideCheck, LucideArrowLeft, LucideArrowRight, LucidePlus, LucideTrash2 } from '@lucide/angular';
@@ -24,6 +24,7 @@ export class OnboardingComponent {
   readonly ai = inject(AiService);
   readonly layout = inject(LayoutService);
 
+  readonly openImportExport = output<void>();
   readonly step = signal<OnboardingStep>('paste');
   readonly rawText = signal('');
   readonly parsing = signal(false);

@@ -32,7 +32,7 @@
 </header>
 
 @if (!vs.onboarded()) {
-  <app-onboarding />
+  <app-onboarding (openImportExport)="backupMsg.set(null); backupOpen.set(true)" />
 } @else {
   <nav class="tabs no-print" [class.tabs--always]="ext.isPopup()" aria-label="Workspace steps">
     @for (t of tabs; track t.id) {
@@ -148,6 +148,9 @@
     <div class="row wrap">
       <button app-button type="button" variant="secondary" (click)="exportAll()">Export (.json)</button>
       <button app-button type="button" variant="secondary" (click)="triggerHeaderImport()">Import (.json)</button>
+      @if (!vs.onboarded() && vaultSummary().hasData) {
+        <button app-button type="button" variant="primary" (click)="continueToVault()">Open Vault</button>
+      }
       <input #headerImportInput type="file" accept="application/json,.json" hidden (change)="importAll($event)" />
     </div>
     <p class="hint">Exports and imports your Master Career Vault and all saved resumes in a single JSON file.</p>
