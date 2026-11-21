@@ -70,7 +70,7 @@
     --text-primary: #0f172a;
     --text-secondary: #334155;
     --text-muted: #64748b;
-    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --spacing-scale: 1;
     --fs: 10pt;
 
@@ -150,17 +150,12 @@
       font-size: 1.02em;
       font-weight: 600;
       color: var(--text-primary);
-      display: flex;
-      gap: 0.35em;
-      align-items: baseline;
+      line-height: 1.35;
       margin: 0;
     }
 
     .r-entity {
-      display: inline-flex;
-      align-items: baseline;
-      flex-wrap: wrap;
-      min-width: 0;
+      display: inline;
     }
 
     .r-title {
@@ -182,12 +177,12 @@
     }
 
     .r-dates {
-      margin-left: auto;
+      display: inline;
+      margin-left: 0.45em;
       font-weight: 400;
       font-size: 0.92em;
       color: var(--text-muted);
       white-space: nowrap;
-      flex-shrink: 0;
     }
 
     ul {
@@ -312,17 +307,12 @@
       font-size: 0.98em;
       font-weight: 700;
       color: var(--text-primary);
-      display: flex;
-      gap: 0.3em;
-      align-items: baseline;
+      line-height: 1.35;
       margin: 0;
     }
 
     .r-entity {
-      display: inline-flex;
-      align-items: baseline;
-      flex-wrap: wrap;
-      min-width: 0;
+      display: inline;
     }
 
     .r-title {
@@ -344,12 +334,12 @@
     }
 
     .r-dates {
-      margin-left: auto;
+      display: inline;
+      margin-left: 0.45em;
       font-weight: 400;
       font-size: 0.9em;
       color: var(--text-muted);
       white-space: nowrap;
-      flex-shrink: 0;
 
       &::before {
         content: '[';
@@ -480,17 +470,12 @@
     h3 {
       font-size: 1.02em;
       font-weight: 700;
-      display: flex;
-      gap: 0.3em;
-      align-items: baseline;
+      line-height: 1.35;
       margin: 0;
     }
 
     .r-entity {
-      display: inline-flex;
-      align-items: baseline;
-      flex-wrap: wrap;
-      min-width: 0;
+      display: inline;
     }
 
     .r-title {
@@ -514,13 +499,13 @@
     }
 
     .r-dates {
-      margin-left: auto;
+      display: inline;
+      margin-left: 0.45em;
       font-weight: 400;
       font-size: 0.92em;
       font-style: normal;
       color: var(--text-muted);
       white-space: nowrap;
-      flex-shrink: 0;
     }
 
     ul {
