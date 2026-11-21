@@ -572,8 +572,12 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     const endDate = draft.endDate.trim();
     if (!role && !company) return;
 
-    const isVaultRole = this.vs.vault().experience.some((e) => e.id === expId);
-    if (isVaultRole) {
+    const inResumeExp = this.vs.resumeOnlyExperience().some((e) => e.id === expId);
+    if (inResumeExp) {
+      this.vs.resumeOnlyExperience.update((list) =>
+        list.map((e) => (e.id === expId ? { ...e, role, company, startDate, endDate } : e)),
+      );
+    } else if (this.vs.vault().experience.some((e) => e.id === expId)) {
       this.vs.update((v) => {
         const target = v.experience.find((e) => e.id === expId);
         if (target) {
@@ -583,10 +587,6 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
           target.endDate = endDate;
         }
       });
-    } else {
-      this.vs.resumeOnlyExperience.update((list) =>
-        list.map((e) => (e.id === expId ? { ...e, role, company, startDate, endDate } : e)),
-      );
     }
     this.editingRoleId.set(null);
   }
@@ -607,6 +607,20 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     if (!text) return;
 
     const { expId, bulletId } = target;
+    const inResumeExp = this.vs
+      .resumeOnlyExperience()
+      .some((e) => e.id === expId && e.bullets.some((b) => b.id === bulletId));
+    if (inResumeExp) {
+      this.vs.resumeOnlyExperience.update((list) =>
+        list.map((e) =>
+          e.id === expId
+            ? { ...e, bullets: e.bullets.map((b) => (b.id === bulletId ? { ...b, text } : b)) }
+            : e,
+        ),
+      );
+      this.editingBullet.set(null);
+      return;
+    }
     const vaultRole = this.vs.vault().experience.find((e) => e.id === expId);
     const vaultBullet = vaultRole?.bullets.find((x) => x.id === bulletId);
     if (vaultBullet) {
