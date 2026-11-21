@@ -716,6 +716,16 @@
     }
   }
 
+  .r-margin-zone {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: rgba(220, 38, 38, 0.08);
+    border-top: 1px dotted #dc2626;
+    pointer-events: none;
+    z-index: 4;
+  }
+
   .r-page-break {
     position: absolute;
     top: calc(297mm - 1px);
@@ -917,10 +927,6 @@
   .sheet {
     position: static !important;
     transform: none !important;
-    width: 210mm !important;
-    min-height: 297mm !important;
-    /* Margins from @page are transferred to sheet padding so internal document margins remain exact 12mm 14mm */
-    padding: 12mm 14mm !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
     -webkit-print-color-adjust: exact;

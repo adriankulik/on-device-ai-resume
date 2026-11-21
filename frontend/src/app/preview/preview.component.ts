@@ -99,6 +99,11 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     const m = this.marginSpec();
     return `${m.topBottomMm}mm ${m.leftRightMm}mm`;
   });
+  readonly bottomMarginPx = computed(() => {
+    const st = this.s();
+    const mm = st.marginPreset === 'custom' ? st.customMargins.bottomMm : this.marginSpec().topBottomMm;
+    return (Number(mm) || 0) * MM_PX;
+  });
   readonly pageLimitLabel = computed(() => {
     const p = this.paperSpec();
     const u = this.s().unitSystem;
@@ -149,6 +154,7 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
       this.editMode();
       this.paperSpec();
       this.marginSpec();
+      this.s();
       if (this.measureLayout) {
         queueMicrotask(() => this.measureLayout?.());
       }
@@ -256,7 +262,7 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
         let delta = totalH - printableH;
         const count = Math.min(liveEls.length, cloneEls.length);
         for (let i = 0; i < count; i++) {
-          if (cloneEls[i].offsetTop + cloneEls[i].offsetHeight > pageH) {
+          if (cloneEls[i].offsetTop + cloneEls[i].offsetHeight > pageH - this.bottomMarginPx()) {
             delta = liveEls[i].offsetTop - cloneEls[i].offsetTop;
             break;
           }
