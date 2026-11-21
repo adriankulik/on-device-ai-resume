@@ -43,6 +43,52 @@
     }
   </app-collapsible>
 
+  <app-collapsible
+    title="Previous resumes"
+    [open]="false"
+    [badge]="savedResumes.resumes().length ? savedResumes.resumes().length + ' saved' : ''"
+  >
+    <p class="hint">
+      Open, export, or import point-in-time snapshots of resumes you previously saved.
+    </p>
+    <div class="saved-resumes__io">
+      <button
+        app-button
+        type="button"
+        variant="secondary"
+        size="sm"
+        [disabled]="!savedResumes.resumes().length"
+        (click)="exportAllResumes()"
+      >
+        Export all JSON
+      </button>
+      <label class="saved-resumes__import-btn">
+        Import JSON
+        <input type="file" accept="application/json,.json" hidden (change)="importResumes($event)" />
+      </label>
+    </div>
+
+    @if (savedResumes.resumes().length === 0) {
+      <p class="hint">No saved resumes yet. Use “Save resume” in the Preview tab to store a snapshot.</p>
+    } @else {
+      <ul class="saved-resumes__list">
+        @for (item of savedResumes.resumes(); track item.id) {
+          <li class="saved-resumes__item" [class.active]="savedResumes.activeSnapshotId() === item.id">
+            <div class="saved-resumes__meta">
+              <strong>{{ item.name }}</strong>
+              <span>{{ item.savedAt.slice(0, 10) }} · {{ item.snapshot.experience.length }} role(s)</span>
+            </div>
+            <div class="saved-resumes__actions">
+              <button app-button type="button" variant="primary" size="sm" (click)="loadPreviousResume(item)">Load</button>
+              <button app-button type="button" variant="secondary" size="sm" (click)="exportSingleResume(item)">Export</button>
+              <button app-button type="button" variant="ghost" size="sm" (click)="deletePreviousResume(item.id)">Delete</button>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </app-collapsible>
+
   <section class="card card--divided">
     <div class="card-head"><h3>Contact</h3></div>
     <hr class="divider" aria-hidden="true" />
