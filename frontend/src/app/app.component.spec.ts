@@ -91,4 +91,37 @@ describe('AppComponent', () => {
     expect(tabButtons[2].classList.contains('completed')).toBeTrue();
     expect(tabButtons[0].querySelector('svg.tab-check')).toBeTruthy();
   });
+
+  it('deletes a saved resume from the Import / Export modal', async () => {
+    localStorage.clear();
+    await TestBed.configureTestingModule({ imports: [AppComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(AppComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+    await comp.savedResumes.ready;
+
+    const saved = comp.savedResumes.saveSnapshot('Old Resume', {
+      contact: vs.vault().contact,
+      summary: 'Summary',
+      experience: [],
+      education: [],
+      certifications: [],
+      skills: [],
+      settings: vs.vault().settings,
+    });
+    comp.savedResumes.activeSnapshotId.set(saved.id);
+    comp.backupOpen.set(true);
+    fixture.detectChanges();
+
+    const deleteBtn = Array.from(fixture.nativeElement.querySelectorAll('.backup-summary__item button'))
+      .find((b) => (b as HTMLButtonElement).textContent?.trim() === 'Delete') as HTMLButtonElement | undefined;
+    expect(deleteBtn).toBeTruthy();
+    deleteBtn?.click();
+    fixture.detectChanges();
+
+    expect(comp.savedResumes.resumes().length).toBe(0);
+    expect(comp.savedResumes.activeSnapshotId()).toBeNull();
+    localStorage.clear();
+  });
 });
