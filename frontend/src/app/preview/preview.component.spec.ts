@@ -590,4 +590,41 @@ describe('PreviewComponent', () => {
     expect(vs.vault().skills).toContain('Kubernetes');
     expect(vs.vault().skillCategories.find((c) => c.category === 'Cloud')?.skills).toContain('Kubernetes');
   });
+
+  it('allows moving a newly added resume-only bullet above vault bullets', async () => {
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    vs.update((v) => {
+      v.experience = [
+        {
+          id: 'exp_1',
+          role: 'Engineer',
+          company: 'Acme',
+          startDate: '2022',
+          endDate: 'Present',
+          bullets: [{ id: 'b_1', text: 'Existing vault bullet' }],
+        },
+      ];
+    });
+    vs.selectAll();
+    comp.toggleEditMode();
+    comp.setBulletDraft('exp_1', 'Newly added bullet');
+    comp.addResumeBullet('exp_1');
+    fixture.detectChanges();
+
+    const addedId = vs.selectedExperience()[0].bullets[1].id;
+    const moveUpBtn = fixture.nativeElement.querySelector(`button[aria-label="Move bullet ${addedId} up"]`) as HTMLButtonElement | null;
+    expect(moveUpBtn).toBeTruthy();
+    moveUpBtn?.click();
+    fixture.detectChanges();
+
+    expect(vs.selectedExperience()[0].bullets.map((b) => b.text)).toEqual([
+      'Newly added bullet',
+      'Existing vault bullet',
+    ]);
+  });
 });

@@ -437,11 +437,17 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
         if (isResumeOnlyExp) {
           this.promoteResumeOnlyExperience(expId);
         } else {
-          this.vs.addBullet(expId, text, true);
+          const newId = this.vs.addBullet(expId, text, true);
           this.vs.resumeOnlyBullets.update((map) => ({
             ...map,
             [expId]: (map[expId] ?? []).filter((b) => b.id !== id),
           }));
+          if (this.vs.resumeBulletOrder()[expId]?.includes(id)) {
+            this.vs.resumeBulletOrder.update((map) => ({
+              ...map,
+              [expId]: (map[expId] ?? []).map((bid) => (bid === id ? newId : bid)),
+            }));
+          }
         }
       },
     });
@@ -547,23 +553,16 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     if (vaultRole) {
       const i1 = vaultRole.bullets.findIndex((b) => b.id === bulletId);
       const i2 = vaultRole.bullets.findIndex((b) => b.id === otherId);
-      if (i1 !== -1 && i2 !== -1) {
+      if (i1 !== -1 && i2 !== -1 && !this.vs.resumeBulletOrder()[expId]?.length) {
         this.vs.update((v) => {
           const r = v.experience.find((e) => e.id === expId);
           if (r) [r.bullets[i1], r.bullets[i2]] = [r.bullets[i2], r.bullets[i1]];
         });
         return;
       }
-      const extra = this.vs.resumeOnlyBullets()[expId] ?? [];
-      const e1 = extra.findIndex((b) => b.id === bulletId);
-      const e2 = extra.findIndex((b) => b.id === otherId);
-      if (e1 !== -1 && e2 !== -1) {
-        this.vs.resumeOnlyBullets.update((map) => {
-          const copy = [...(map[expId] ?? [])];
-          [copy[e1], copy[e2]] = [copy[e2], copy[e1]];
-          return { ...map, [expId]: copy };
-        });
-      }
+      const ids = role.bullets.map((b) => b.id);
+      [ids[visIdx], ids[targetVisIdx]] = [ids[targetVisIdx], ids[visIdx]];
+      this.vs.resumeBulletOrder.update((map) => ({ ...map, [expId]: ids }));
     }
   }
 
