@@ -176,4 +176,43 @@ describe('VaultService persistence', () => {
     expect(vs.vault().summary).toBe('External update');
     expect(setSpy.calls.allArgs().filter(([k]) => k === KEY).length).toBe(0);
   });
+
+  it('does not duplicate positions when resumeOnlyExperience shares an id with vault experience', async () => {
+    const vs = TestBed.inject(VaultService);
+    await tick();
+
+    vs.update((v) => {
+      v.experience = [
+        {
+          id: 'exp_1',
+          role: 'Senior Engineer',
+          company: 'Acme',
+          startDate: '2022',
+          endDate: 'Present',
+          bullets: [{ id: 'b_1', text: 'Built TypeScript services' }],
+        },
+      ];
+    });
+    vs.resumeOnlyExperience.set([
+      {
+        id: 'exp_1',
+        role: 'Senior Engineer',
+        company: 'Acme',
+        startDate: '2022',
+        endDate: 'Present',
+        bullets: [{ id: 'b_1', text: 'Old snapshot bullet' }],
+      },
+      {
+        id: 're_extra',
+        role: 'Advisor',
+        company: 'Beta',
+        startDate: '2021',
+        endDate: '2022',
+        bullets: [{ id: 'rb_1', text: 'Advised startup' }],
+      },
+    ]);
+    vs.setSelected(['b_1']);
+
+    expect(vs.selectedExperience().map((e) => e.id)).toEqual(['exp_1', 're_extra']);
+  });
 });

@@ -334,7 +334,8 @@ export class VaultService {
         ],
       }))
       .filter((e) => e.bullets.length > 0);
-    return [...vaultExps, ...this.resumeOnlyExperience()];
+    const vaultIds = new Set(vaultExps.map((e) => e.id));
+    return [...vaultExps, ...this.resumeOnlyExperience().filter((e) => !vaultIds.has(e.id))];
   });
 
   /** Education entries from the vault (excluding hidden ones) plus resume-only additions. */
@@ -377,7 +378,7 @@ export class VaultService {
     this.setVault(normalizeVault(JSON.parse(text)), true);
   }
 
-  private resetTailoredState(): void {
+  resetTailoredState(): void {
     this.tailoredSummary.set(null);
     this.tailoredSkills.set(null);
     this.tailoredSkillCategories.set(null);

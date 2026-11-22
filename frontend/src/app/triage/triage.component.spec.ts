@@ -294,4 +294,43 @@ describe('TriageComponent', () => {
     expect(vaultService.tailoredSkills()).toContain('agents');
     expect(component.matches().find((m) => m.keyword === 'agents')?.inSkills).toBeTrue();
   });
+
+  it('clears previously loaded snapshot experience on analyze so positions are not duplicated', async () => {
+    await vaultService.ready;
+    vaultService.update((v) => {
+      v.experience = [
+        {
+          id: 'exp_1',
+          role: 'Staff Engineer',
+          company: 'Acme',
+          startDate: '2022-01',
+          endDate: 'Present',
+          bullets: [{ id: 'b_1', text: 'Led Angular architecture' }],
+        },
+      ];
+      v.skills = ['Angular'];
+    });
+    vaultService.loadResumeSnapshot({
+      contact: vaultService.vault().contact,
+      summary: 'Old snapshot summary',
+      experience: structuredClone(vaultService.vault().experience),
+      education: [],
+      certifications: [],
+      skills: ['Angular'],
+      settings: vaultService.vault().settings,
+    });
+    spyOn(aiService, 'triage').and.resolveTo({
+      selectedBulletIds: ['b_1'],
+      extractedKeywords: ['Angular'],
+      relevantSkills: ['Angular'],
+      summary: 'New tailored summary',
+      source: 'fallback',
+    });
+
+    component.jd.set('Looking for a Staff Engineer skilled in Angular.');
+    await component.analyze();
+
+    expect(vaultService.resumeOnlyExperience()).toEqual([]);
+    expect(vaultService.selectedExperience().map((e) => e.id)).toEqual(['exp_1']);
+  });
 });
