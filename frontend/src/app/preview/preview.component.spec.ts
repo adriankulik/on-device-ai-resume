@@ -627,4 +627,48 @@ describe('PreviewComponent', () => {
       'Existing vault bullet',
     ]);
   });
+
+  it('reorders vault bullets even if stale resumeOnlyExperience shares the same role id', async () => {
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    vs.update((v) => {
+      v.experience = [
+        {
+          id: 'exp_1',
+          role: 'Engineer',
+          company: 'Acme',
+          startDate: '2022',
+          endDate: 'Present',
+          bullets: [
+            { id: 'b_1', text: 'First vault bullet' },
+            { id: 'b_2', text: 'Second vault bullet' },
+          ],
+        },
+      ];
+    });
+    vs.resumeOnlyExperience.set([
+      {
+        id: 'exp_1',
+        role: 'Engineer',
+        company: 'Acme',
+        startDate: '2022',
+        endDate: 'Present',
+        bullets: [{ id: 'b_1', text: 'Stale snapshot bullet' }],
+      },
+    ]);
+    vs.selectAll();
+    comp.toggleEditMode();
+    fixture.detectChanges();
+
+    const moveUpBtn = fixture.nativeElement.querySelector('button[aria-label="Move bullet b_2 up"]') as HTMLButtonElement | null;
+    expect(moveUpBtn).toBeTruthy();
+    moveUpBtn?.click();
+    fixture.detectChanges();
+
+    expect(vs.selectedExperience()[0].bullets.map((b) => b.id)).toEqual(['b_2', 'b_1']);
+  });
 });
