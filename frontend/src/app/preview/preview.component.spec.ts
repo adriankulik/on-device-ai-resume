@@ -671,4 +671,45 @@ describe('PreviewComponent', () => {
 
     expect(vs.selectedExperience()[0].bullets.map((b) => b.id)).toEqual(['b_2', 'b_1']);
   });
+
+  it('reorders roles across vault and resumeOnlyExperience', async () => {
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    vs.update((v) => {
+      v.experience = [
+        {
+          id: 'exp_1',
+          role: 'Vault Role',
+          company: 'Acme',
+          startDate: '2022',
+          endDate: 'Present',
+          bullets: [{ id: 'b_1', text: 'Vault bullet' }],
+        },
+      ];
+    });
+    vs.resumeOnlyExperience.set([
+      {
+        id: 're_1',
+        role: 'Resume Only Role',
+        company: 'Beta',
+        startDate: '2020',
+        endDate: '2022',
+        bullets: [{ id: 'rb_1', text: 'Resume bullet' }],
+      },
+    ]);
+    vs.selectAll();
+    comp.toggleEditMode();
+    fixture.detectChanges();
+
+    const moveDownBtn = fixture.nativeElement.querySelector('button[aria-label="Move role Vault Role down"]') as HTMLButtonElement | null;
+    expect(moveDownBtn).toBeTruthy();
+    moveDownBtn?.click();
+    fixture.detectChanges();
+
+    expect(vs.selectedExperience().map((e) => e.id)).toEqual(['re_1', 'exp_1']);
+  });
 });
