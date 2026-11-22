@@ -712,4 +712,21 @@ describe('PreviewComponent', () => {
 
     expect(vs.selectedExperience().map((e) => e.id)).toEqual(['re_1', 'exp_1']);
   });
+
+  it('scrolls to preview stage on init when opened in edit mode', (done) => {
+    TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents().then(() => {
+      const fixture = TestBed.createComponent(PreviewComponent);
+      const comp = fixture.componentInstance;
+      comp.editMode.set(true);
+      const stageEl = fixture.nativeElement.querySelector('.stage') as HTMLElement;
+      const scrollSpy = spyOn(stageEl, 'scrollIntoView');
+
+      fixture.detectChanges();
+
+      setTimeout(() => {
+        expect(scrollSpy).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+        done();
+      }, 60);
+    });
+  });
 });

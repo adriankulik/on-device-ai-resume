@@ -317,6 +317,9 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     this.ro.observe(this.stage().nativeElement);
     this.ro.observe(this.sheet().nativeElement);
     update();
+    if (this.editMode()) {
+      setTimeout(() => this.stage().nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }
   }
 
   ngOnDestroy(): void {
