@@ -29,6 +29,7 @@ import {
   UNIT_SYSTEMS,
   UnitSystem,
   VaultSettings,
+  addSkillToVault,
   nextId,
 } from '../core/vault.model';
 import { RichTextComponent } from '../core/rich-text.component';
@@ -203,6 +204,7 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   });
 
   readonly locationText = computed(() => (this.contact().location || '').trim());
+  readonly tagline = computed(() => (this.contact().tagline || '').trim());
 
   readonly linkedinLink = computed(() =>
     formatProfileLink(this.contact().linkedin, 'linkedin.com', '/in/'),
@@ -995,9 +997,7 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     this.pendingVaultPrompt.set({
       label: 'skill',
       commit: () => {
-        this.vs.update((v) => {
-          if (!v.skills.includes(skill)) v.skills.push(skill);
-        });
+        this.vs.update((v) => addSkillToVault(v, skill));
       },
     });
   }
