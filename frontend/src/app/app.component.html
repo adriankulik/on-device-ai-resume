@@ -134,9 +134,14 @@
             @for (item of savedResumes.resumes(); track item.id) {
               <li class="backup-summary__item">
                 <span>{{ item.name }} <span class="hint">({{ item.savedAt.slice(0, 10) }})</span></span>
-                <button app-button type="button" variant="primary" size="sm" (click)="loadSavedResume(item)">
-                  Load resume
-                </button>
+                <span class="row">
+                  <button app-button type="button" variant="primary" size="sm" (click)="loadSavedResume(item)">
+                    Load resume
+                  </button>
+                  <button app-button type="button" variant="ghost" size="sm" (click)="deleteSavedResume(item.id)">
+                    Delete
+                  </button>
+                </span>
               </li>
             }
           </ul>

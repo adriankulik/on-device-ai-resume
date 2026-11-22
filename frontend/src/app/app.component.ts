@@ -82,6 +82,13 @@ export class AppComponent implements OnInit {
     this.backupOpen.set(false);
   }
 
+  deleteSavedResume(id: string): void {
+    this.savedResumes.deleteSnapshot(id);
+    if (this.savedResumes.activeSnapshotId() === id) {
+      this.savedResumes.activeSnapshotId.set(null);
+    }
+  }
+
   continueToVault(): void {
     if (!this.vs.onboarded()) {
       this.vs.completeOnboarding();
