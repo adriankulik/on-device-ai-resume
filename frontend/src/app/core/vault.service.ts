@@ -14,6 +14,7 @@ interface SavedTailoredState {
   tailoredSkillCategories?: SkillCategory[] | null;
   resumeOnlyBullets?: Record<string, Bullet[]>;
   resumeBulletOverrides?: Record<string, string>;
+  resumeBulletOrder?: Record<string, string[]>;
   resumeOnlyExperience?: Experience[];
   resumeOnlyEducation?: Education[];
   hiddenEducationIds?: string[];
@@ -46,6 +47,7 @@ export class VaultService {
   /** Resume-only additions & visibility overrides (keeps Master Vault untouched unless promoted). */
   readonly resumeOnlyBullets = signal<Record<string, Bullet[]>>({});
   readonly resumeBulletOverrides = signal<Record<string, string>>({});
+  readonly resumeBulletOrder = signal<Record<string, string[]>>({});
   readonly resumeOnlyExperience = signal<Experience[]>([]);
   readonly resumeOnlyEducation = signal<Education[]>([]);
   readonly hiddenEducationIds = signal<Set<string>>(new Set());
@@ -79,6 +81,7 @@ export class VaultService {
         tailoredSkillCategories: this.tailoredSkillCategories(),
         resumeOnlyBullets: this.resumeOnlyBullets(),
         resumeBulletOverrides: this.resumeBulletOverrides(),
+        resumeBulletOrder: this.resumeBulletOrder(),
         resumeOnlyExperience: this.resumeOnlyExperience(),
         resumeOnlyEducation: this.resumeOnlyEducation(),
         hiddenEducationIds: Array.from(this.hiddenEducationIds()),
@@ -147,6 +150,9 @@ export class VaultService {
     }
     if (tailored.resumeBulletOverrides && typeof tailored.resumeBulletOverrides === 'object') {
       this.resumeBulletOverrides.set(tailored.resumeBulletOverrides);
+    }
+    if (tailored.resumeBulletOrder && typeof tailored.resumeBulletOrder === 'object') {
+      this.resumeBulletOrder.set(tailored.resumeBulletOrder);
     }
     if (Array.isArray(tailored.resumeOnlyExperience)) {
       this.resumeOnlyExperience.set(tailored.resumeOnlyExperience);
@@ -323,16 +329,22 @@ export class VaultService {
     const sel = this.selectedBulletIds();
     const extraBullets = this.resumeOnlyBullets();
     const overrides = this.resumeBulletOverrides();
+    const orders = this.resumeBulletOrder();
     const vaultExps = this.vault()
-      .experience.map((e) => ({
-        ...e,
-        bullets: [
+      .experience.map((e) => {
+        const bullets = [
           ...e.bullets
             .filter((b) => sel.has(b.id))
             .map((b) => (overrides[b.id] !== undefined ? { ...b, text: overrides[b.id] } : b)),
           ...(extraBullets[e.id] ?? []),
-        ],
-      }))
+        ];
+        const order = orders[e.id];
+        if (order?.length) {
+          const pos = new Map(order.map((id, i) => [id, i]));
+          bullets.sort((a, b) => (pos.get(a.id) ?? Infinity) - (pos.get(b.id) ?? Infinity));
+        }
+        return { ...e, bullets };
+      })
       .filter((e) => e.bullets.length > 0);
     const vaultIds = new Set(vaultExps.map((e) => e.id));
     return [...vaultExps, ...this.resumeOnlyExperience().filter((e) => !vaultIds.has(e.id))];
@@ -384,6 +396,7 @@ export class VaultService {
     this.tailoredSkillCategories.set(null);
     this.resumeOnlyBullets.set({});
     this.resumeBulletOverrides.set({});
+    this.resumeBulletOrder.set({});
     this.resumeOnlyExperience.set([]);
     this.resumeOnlyEducation.set([]);
     this.hiddenEducationIds.set(new Set());
