@@ -150,5 +150,23 @@ describe('LocalOpenAiProvider', () => {
         /Failed to connect to local AI endpoint/,
       );
     });
+
+    it('retries without response_format if server returns 200 with empty content and reads reasoning_content fallback', async () => {
+      let callCount = 0;
+      globalThis.fetch = jasmine.createSpy('fetch').and.callFake(async () => {
+        callCount++;
+        if (callCount === 1) {
+          return new Response(JSON.stringify({ choices: [{ message: { content: '' } }] }), { status: 200 });
+        }
+        return new Response(
+          JSON.stringify({ choices: [{ message: { content: null, reasoning_content: '{"ok": true}' } }] }),
+          { status: 200 },
+        );
+      });
+
+      const res = await provider.generateJson<{ ok: boolean }>('System', 'User');
+      expect(res.ok).toBeTrue();
+      expect(callCount).toBe(2);
+    });
   });
 });

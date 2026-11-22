@@ -14,6 +14,7 @@ describe('TriageComponent', () => {
   let aiService: AiService;
 
   beforeEach(async () => {
+    localStorage.clear();
     await TestBed.configureTestingModule({
       imports: [TriageComponent],
     }).compileComponents();
