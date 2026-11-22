@@ -513,9 +513,10 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     if (visIdx < 0 || targetVisIdx < 0 || targetVisIdx >= visible.length) return;
     const otherId = visible[targetVisIdx].id;
 
-    const r1 = this.vs.resumeOnlyExperience().findIndex((e) => e.id === expId);
-    const r2 = this.vs.resumeOnlyExperience().findIndex((e) => e.id === otherId);
-    if (r1 !== -1 && r2 !== -1) {
+    const hasOrder = this.vs.resumeExperienceOrder().length > 0;
+    const r1 = this.isResumeOnlyExp(expId) ? this.vs.resumeOnlyExperience().findIndex((e) => e.id === expId) : -1;
+    const r2 = this.isResumeOnlyExp(otherId) ? this.vs.resumeOnlyExperience().findIndex((e) => e.id === otherId) : -1;
+    if (!hasOrder && r1 !== -1 && r2 !== -1) {
       this.vs.resumeOnlyExperience.update((list) => {
         const copy = [...list];
         [copy[r1], copy[r2]] = [copy[r2], copy[r1]];
@@ -525,13 +526,18 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     }
 
     const vaultExps = this.vs.vault().experience;
-    const i1 = vaultExps.findIndex((e) => e.id === expId);
-    const i2 = vaultExps.findIndex((e) => e.id === otherId);
-    if (i1 !== -1 && i2 !== -1) {
+    const i1 = !this.isResumeOnlyExp(expId) ? vaultExps.findIndex((e) => e.id === expId) : -1;
+    const i2 = !this.isResumeOnlyExp(otherId) ? vaultExps.findIndex((e) => e.id === otherId) : -1;
+    if (!hasOrder && i1 !== -1 && i2 !== -1) {
       this.vs.update((v) => {
         [v.experience[i1], v.experience[i2]] = [v.experience[i2], v.experience[i1]];
       });
+      return;
     }
+
+    const ids = visible.map((e) => e.id);
+    [ids[visIdx], ids[targetVisIdx]] = [ids[targetVisIdx], ids[visIdx]];
+    this.vs.resumeExperienceOrder.set(ids);
   }
 
   moveResumeBullet(expId: string, bulletId: string, delta: -1 | 1): void {
@@ -735,9 +741,10 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   private promoteResumeOnlyExperience(expId: string): void {
     const target = this.vs.resumeOnlyExperience().find((e) => e.id === expId);
     if (!target) return;
+    let newExpId = '';
     const addedBulletIds: string[] = [];
     this.vs.update((v) => {
-      const newExpId = nextId(v, 'exp');
+      newExpId = nextId(v, 'exp');
       const bullets = target.bullets.map((b) => {
         const bid = nextId(v, 'b');
         addedBulletIds.push(bid);
@@ -756,6 +763,9 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
       this.vs.toggleBullet(bid, true);
     }
     this.vs.resumeOnlyExperience.update((list) => list.filter((e) => e.id !== expId));
+    if (newExpId && this.vs.resumeExperienceOrder().includes(expId)) {
+      this.vs.resumeExperienceOrder.update((ids) => ids.map((id) => (id === expId ? newExpId : id)));
+    }
   }
 
   removeResumeExperience(exp: Experience): void {

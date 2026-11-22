@@ -15,6 +15,7 @@ interface SavedTailoredState {
   resumeOnlyBullets?: Record<string, Bullet[]>;
   resumeBulletOverrides?: Record<string, string>;
   resumeBulletOrder?: Record<string, string[]>;
+  resumeExperienceOrder?: string[];
   resumeOnlyExperience?: Experience[];
   resumeOnlyEducation?: Education[];
   hiddenEducationIds?: string[];
@@ -48,6 +49,7 @@ export class VaultService {
   readonly resumeOnlyBullets = signal<Record<string, Bullet[]>>({});
   readonly resumeBulletOverrides = signal<Record<string, string>>({});
   readonly resumeBulletOrder = signal<Record<string, string[]>>({});
+  readonly resumeExperienceOrder = signal<string[]>([]);
   readonly resumeOnlyExperience = signal<Experience[]>([]);
   readonly resumeOnlyEducation = signal<Education[]>([]);
   readonly hiddenEducationIds = signal<Set<string>>(new Set());
@@ -82,6 +84,7 @@ export class VaultService {
         resumeOnlyBullets: this.resumeOnlyBullets(),
         resumeBulletOverrides: this.resumeBulletOverrides(),
         resumeBulletOrder: this.resumeBulletOrder(),
+        resumeExperienceOrder: this.resumeExperienceOrder(),
         resumeOnlyExperience: this.resumeOnlyExperience(),
         resumeOnlyEducation: this.resumeOnlyEducation(),
         hiddenEducationIds: Array.from(this.hiddenEducationIds()),
@@ -153,6 +156,9 @@ export class VaultService {
     }
     if (tailored.resumeBulletOrder && typeof tailored.resumeBulletOrder === 'object') {
       this.resumeBulletOrder.set(tailored.resumeBulletOrder);
+    }
+    if (Array.isArray(tailored.resumeExperienceOrder)) {
+      this.resumeExperienceOrder.set(tailored.resumeExperienceOrder);
     }
     if (Array.isArray(tailored.resumeOnlyExperience)) {
       this.resumeOnlyExperience.set(tailored.resumeOnlyExperience);
@@ -347,7 +353,13 @@ export class VaultService {
       })
       .filter((e) => e.bullets.length > 0);
     const vaultIds = new Set(vaultExps.map((e) => e.id));
-    return [...vaultExps, ...this.resumeOnlyExperience().filter((e) => !vaultIds.has(e.id))];
+    const combined = [...vaultExps, ...this.resumeOnlyExperience().filter((e) => !vaultIds.has(e.id))];
+    const expOrder = this.resumeExperienceOrder();
+    if (expOrder.length) {
+      const pos = new Map(expOrder.map((id, i) => [id, i]));
+      combined.sort((a, b) => (pos.get(a.id) ?? Infinity) - (pos.get(b.id) ?? Infinity));
+    }
+    return combined;
   });
 
   /** Education entries from the vault (excluding hidden ones) plus resume-only additions. */
@@ -397,6 +409,7 @@ export class VaultService {
     this.resumeOnlyBullets.set({});
     this.resumeBulletOverrides.set({});
     this.resumeBulletOrder.set({});
+    this.resumeExperienceOrder.set([]);
     this.resumeOnlyExperience.set([]);
     this.resumeOnlyEducation.set([]);
     this.hiddenEducationIds.set(new Set());
