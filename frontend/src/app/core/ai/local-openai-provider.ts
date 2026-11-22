@@ -122,7 +122,13 @@ export class LocalOpenAiProvider implements AiProvider {
         body: JSON.stringify(makePayload(useFormat)),
       });
 
-    const extractText = (data: any): string => {
+    const extractText = (data: {
+      choices?: {
+        message?: { content?: unknown; reasoning_content?: unknown; reasoning?: unknown };
+        text?: unknown;
+        finish_reason?: string;
+      }[];
+    }): string => {
       const choice = data?.choices?.[0];
       const msg = choice?.message;
       const content = msg?.content;
