@@ -115,22 +115,42 @@ export class LocalOpenAiProvider implements AiProvider {
       ...(useFormat ? { response_format: { type: 'json_object' } } : {}),
     });
 
-    let res: Response;
-    try {
-      // First attempt: with json_object response_format
-      res = await fetch(url, {
+    const postChat = async (useFormat: boolean): Promise<Response> =>
+      fetch(url, {
         method: 'POST',
         headers: this.getHeaders(),
-        body: JSON.stringify(makePayload(true)),
+        body: JSON.stringify(makePayload(useFormat)),
       });
 
+    const extractText = (data: {
+      choices?: {
+        message?: { content?: unknown; reasoning_content?: unknown; reasoning?: unknown };
+        text?: unknown;
+        finish_reason?: string;
+      }[];
+    }): string => {
+      const choice = data?.choices?.[0];
+      const msg = choice?.message;
+      const content = msg?.content;
+      if (typeof content === 'string' && content.trim()) return content;
+      if (Array.isArray(content)) {
+        const joined = content.map((p: { text?: string }) => p?.text ?? '').join('').trim();
+        if (joined) return joined;
+      }
+      for (const fallback of [msg?.reasoning_content, msg?.reasoning, choice?.text]) {
+        if (typeof fallback === 'string' && fallback.trim()) return fallback;
+      }
+      return '';
+    };
+
+    let res: Response;
+    let usedFormat = true;
+    try {
+      res = await postChat(true);
       // If server doesn't support response_format (HTTP 400), retry without it
       if (res.status === 400) {
-        res = await fetch(url, {
-          method: 'POST',
-          headers: this.getHeaders(),
-          body: JSON.stringify(makePayload(false)),
-        });
+        usedFormat = false;
+        res = await postChat(false);
       }
     } catch (err: unknown) {
       throw new Error(
@@ -146,10 +166,24 @@ export class LocalOpenAiProvider implements AiProvider {
       );
     }
 
-    const json = await res.json();
-    const rawContent = json?.choices?.[0]?.message?.content;
-    if (!rawContent || typeof rawContent !== 'string') {
-      throw new Error('Local AI returned empty or invalid response format');
+    let json = await res.json();
+    let rawContent = extractText(json);
+    // Some OpenAI-compatible servers (e.g. oMLX with reasoning models) return empty content with json_object format
+    if (!rawContent && usedFormat) {
+      try {
+        const retryRes = await postChat(false);
+        if (retryRes.ok) {
+          json = await retryRes.json();
+          rawContent = extractText(json);
+        }
+      } catch {
+        // Ignore retry network errors and surface original empty-response error
+      }
+    }
+
+    if (!rawContent) {
+      const reason = json?.choices?.[0]?.finish_reason;
+      throw new Error(`Local AI returned empty or invalid response format${reason ? ` (finish_reason: ${reason})` : ''}`);
     }
 
     return extractJson<T>(rawContent);
