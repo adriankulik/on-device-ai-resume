@@ -106,9 +106,7 @@ export class TriageComponent {
     this.error.set('');
     this.proposals.set({});
     this.aiAddedSkills.set([]);
-    this.vs.tailoredSummary.set(null);
-    this.vs.tailoredSkills.set(null);
-    this.vs.tailoredSkillCategories.set(null);
+    this.vs.resetTailoredState();
     this.vs.selectAll();
     this.layout.unmarkStepCompleted('triage');
     this.layout.unmarkStepCompleted('preview');
@@ -118,6 +116,7 @@ export class TriageComponent {
     const text = this.jd().trim();
     this.error.set('');
     this.manualMode.set(true);
+    this.vs.resetTailoredState();
     if (text) {
       // Heuristic keyword extraction and bullet selection from JD without AI rewriting summary
       const fallback = fallbackTriage(this.vs.vault(), text, this.cap());
@@ -195,6 +194,7 @@ export class TriageComponent {
     this.error.set('');
     try {
       const res = await this.ai.triage(this.vs.vault(), jd, this.cap());
+      this.vs.resetTailoredState();
       this.keywords.set(res.extractedKeywords);
       this.vs.setSelected(res.selectedBulletIds);
       this.vs.tailoredSummary.set(res.summary);
