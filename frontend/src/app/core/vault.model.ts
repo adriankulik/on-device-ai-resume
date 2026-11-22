@@ -97,6 +97,7 @@ export interface VaultSettings {
 
 export interface Contact {
   fullName: string;
+  tagline?: string;
   email: string;
   phone: string;
   location: string;
@@ -125,7 +126,7 @@ export const THEMES: { value: ThemeName; label: string }[] = [
 
 export function emptyVault(): MasterVault {
   return {
-    contact: { fullName: '', email: '', phone: '', location: '', linkedin: '', github: '', links: [], photoDataUrl: '' },
+    contact: { fullName: '', tagline: '', email: '', phone: '', location: '', linkedin: '', github: '', links: [], photoDataUrl: '' },
     summary: '',
     experience: [],
     education: [],
@@ -158,6 +159,7 @@ export function normalizeVault(raw: unknown): MasterVault {
   const c = (r['contact'] ?? {}) as Record<string, unknown>;
   base.contact = {
     fullName: str(c['fullName']),
+    tagline: str(c['tagline']),
     email: str(c['email']),
     phone: str(c['phone']),
     location: str(c['location']),
@@ -366,4 +368,25 @@ export function parseCategorizedSkillsText(raw: string): { skills: string[]; ski
   const skillCategories = dedupeSkillCategories(rawCategories);
   const skills = [...new Set(skillCategories.flatMap((c) => c.skills))];
   return { skills, skillCategories };
+}
+
+/** Adds a skill to vault.skills and vault.skillCategories (when categories exist or one is given), deduplicating case-insensitively. */
+export function addSkillToVault(v: MasterVault, rawSkill: string, category?: string): void {
+  const clean = rawSkill.trim();
+  if (!clean) return;
+  const lower = clean.toLowerCase();
+  if (!v.skills.some((s) => s.toLowerCase() === lower)) {
+    v.skills.push(clean);
+  }
+  const targetCat = category?.trim() || (v.skillCategories.length ? categorizeSkillsHeuristic([clean])[0]?.category : '');
+  if (!targetCat) return;
+  const catLower = targetCat.toLowerCase();
+  const existing = v.skillCategories.find((c) => c.category.toLowerCase() === catLower);
+  if (existing) {
+    if (!existing.skills.some((s) => s.toLowerCase() === lower)) {
+      existing.skills.push(clean);
+    }
+  } else {
+    v.skillCategories.push({ category: targetCat, skills: [clean] });
+  }
 }

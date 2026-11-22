@@ -552,4 +552,42 @@ describe('PreviewComponent', () => {
     ]);
     localStorage.removeItem('ats-resume-builder:saved-resumes');
   });
+
+  it('renders contact tagline underneath full name when set and omits it when blank', async () => {
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.r-tagline')).toBeNull();
+
+    vs.update((v) => {
+      v.contact.fullName = 'Ada Lovelace';
+      v.contact.tagline = '  Principal Systems Architect  ';
+    });
+    fixture.detectChanges();
+
+    const taglineEl = fixture.nativeElement.querySelector('.r-id .r-tagline') as HTMLElement | null;
+    expect(taglineEl?.textContent?.trim()).toBe('Principal Systems Architect');
+  });
+
+  it('updates both vault skills and skillCategories when adding a skill and confirming vault update', async () => {
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    vs.update((v) => {
+      v.skills = ['TypeScript'];
+      v.skillCategories = [{ category: 'Frontend', skills: ['TypeScript'] }];
+    });
+    comp.newSkill.set('Kubernetes');
+    comp.addResumeSkill();
+    comp.confirmVaultPrompt();
+
+    expect(vs.vault().skills).toContain('Kubernetes');
+    expect(vs.vault().skillCategories.find((c) => c.category === 'Cloud')?.skills).toContain('Kubernetes');
+  });
 });

@@ -210,6 +210,9 @@
           }
           <div class="r-id">
             <h1>{{ contact().fullName || 'Your Name' }}</h1>
+            @if (tagline()) {
+              <p class="r-tagline">{{ tagline() }}</p>
+            }
             <div class="r-contact">
               @if (emailLink() || phoneLink() || locationText() || linkedinLink() || githubLink() || contactLinks().length) {
                 <div class="r-contact__row">

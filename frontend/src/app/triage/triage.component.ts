@@ -13,6 +13,7 @@ import { AiService } from '../core/ai.service';
 import { ExtensionService } from '../core/extension.service';
 import { LayoutService } from '../core/layout.service';
 import { VaultService } from '../core/vault.service';
+import { addSkillToVault } from '../core/vault.model';
 import { fallbackTriage, normalize, textHasKeyword } from '../core/keyword-matcher';
 import { RichTextComponent } from '../core/rich-text.component';
 
@@ -277,11 +278,7 @@ export class TriageComponent {
     const clean = keyword.trim();
     if (!clean) return;
     const norm = normalize(clean);
-    this.vs.update((v) => {
-      if (!v.skills.some((s) => normalize(s) === norm)) {
-        v.skills.push(clean);
-      }
-    });
+    this.vs.update((v) => addSkillToVault(v, clean));
     const tailored = this.vs.tailoredSkills();
     if (tailored && !tailored.some((s) => normalize(s) === norm)) {
       this.vs.tailoredSkills.set([...tailored, clean]);

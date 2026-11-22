@@ -77,6 +77,7 @@
     <hr class="divider" aria-hidden="true" />
     <div class="card-body">
       <label>Full name <input type="text" [(ngModel)]="v.contact.fullName" (ngModelChange)="vs.touch()" /></label>
+      <label>Tagline <input type="text" placeholder="e.g. Senior Frontend Engineer" [(ngModel)]="v.contact.tagline" (ngModelChange)="vs.touch()" /></label>
       <label>Email <input type="email" [(ngModel)]="v.contact.email" (ngModelChange)="vs.touch()" /></label>
       <label>Phone <input type="tel" [(ngModel)]="v.contact.phone" (ngModelChange)="vs.touch()" /></label>
       <label>Location <input type="text" [(ngModel)]="v.contact.location" (ngModelChange)="vs.touch()" /></label>

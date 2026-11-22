@@ -281,18 +281,23 @@ describe('TriageComponent', () => {
 
   it('adds a missing keyword to vault and tailored skills when Add to skills is clicked', async () => {
     await vaultService.ready;
+    vaultService.update((v) => {
+      v.skills = ['TypeScript'];
+      v.skillCategories = [{ category: 'Frontend', skills: ['TypeScript'] }];
+    });
     vaultService.tailoredSkills.set(['TypeScript']);
-    component.keywords.set(['TypeScript', 'agents']);
+    component.keywords.set(['TypeScript', 'Docker']);
     fixture.detectChanges();
 
-    const addBtn = fixture.nativeElement.querySelector('button[aria-label="Add agents to skills"]') as HTMLButtonElement | null;
+    const addBtn = fixture.nativeElement.querySelector('button[aria-label="Add Docker to skills"]') as HTMLButtonElement | null;
     expect(addBtn).toBeTruthy();
     addBtn?.click();
     fixture.detectChanges();
 
-    expect(vaultService.vault().skills).toContain('agents');
-    expect(vaultService.tailoredSkills()).toContain('agents');
-    expect(component.matches().find((m) => m.keyword === 'agents')?.inSkills).toBeTrue();
+    expect(vaultService.vault().skills).toContain('Docker');
+    expect(vaultService.vault().skillCategories.find((c) => c.category === 'Cloud')?.skills).toContain('Docker');
+    expect(vaultService.tailoredSkills()).toContain('Docker');
+    expect(component.matches().find((m) => m.keyword === 'Docker')?.inSkills).toBeTrue();
   });
 
   it('clears previously loaded snapshot experience on analyze so positions are not duplicated', async () => {
