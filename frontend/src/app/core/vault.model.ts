@@ -192,7 +192,7 @@ export function normalizeVault(raw: unknown): MasterVault {
     return id;
   };
 
-  base.experience = (Array.isArray(r['experience']) ? r['experience'] : []).map((e: any) => ({
+  const rawExperience: Experience[] = (Array.isArray(r['experience']) ? r['experience'] : []).map((e: any) => ({
     id: uid('exp', e?.id),
     role: str(e?.role),
     company: str(e?.company),
@@ -203,6 +203,27 @@ export function normalizeVault(raw: unknown): MasterVault {
       text: str(b?.text ?? b),
     })),
   }));
+  // Merge duplicate positions (same non-empty role, company, startDate, endDate) and their bullets
+  const seenExp = new Map<string, Experience>();
+  base.experience = [];
+  for (const exp of rawExperience) {
+    const keyParts = [exp.role, exp.company, exp.startDate, exp.endDate].map((s) => s.trim().toLowerCase());
+    const key = keyParts[0] && keyParts[1] ? keyParts.join('|') : '';
+    const existing = key ? seenExp.get(key) : undefined;
+    if (existing) {
+      const seenTexts = new Set(existing.bullets.map((b) => b.text.trim().toLowerCase()));
+      for (const b of exp.bullets) {
+        const norm = b.text.trim().toLowerCase();
+        if (norm && !seenTexts.has(norm)) {
+          seenTexts.add(norm);
+          existing.bullets.push(b);
+        }
+      }
+    } else {
+      if (key) seenExp.set(key, exp);
+      base.experience.push(exp);
+    }
+  }
   base.education = (Array.isArray(r['education']) ? r['education'] : []).map((e: any) => ({
     id: uid('edu', e?.id),
     degree: str(e?.degree),

@@ -394,6 +394,9 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     const saving = this.editMode();
     if (saving) {
       this.flushSkillDrafts();
+      for (const [expId, draft] of Object.entries(this.newBulletDrafts())) {
+        if (draft?.trim()) this.addResumeBullet(expId);
+      }
     }
     this.editMode.set(!saving);
     if (saving) {
@@ -747,6 +750,32 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     let newExpId = '';
     const addedBulletIds: string[] = [];
     this.vs.update((v) => {
+      const norm = (s: string) => s.trim().toLowerCase();
+      const existing = v.experience.find(
+        (e) =>
+          e.id === expId ||
+          (norm(target.role) &&
+            norm(target.company) &&
+            norm(e.role) === norm(target.role) &&
+            norm(e.company) === norm(target.company) &&
+            norm(e.startDate) === norm(target.startDate)),
+      );
+      if (existing) {
+        newExpId = existing.id;
+        const seenTexts = new Set(existing.bullets.map((b) => norm(b.text)));
+        for (const b of target.bullets) {
+          const match = existing.bullets.find((eb) => eb.id === b.id || norm(eb.text) === norm(b.text));
+          if (match) {
+            addedBulletIds.push(match.id);
+          } else if (b.text.trim() && !seenTexts.has(norm(b.text))) {
+            seenTexts.add(norm(b.text));
+            const bid = nextId(v, 'b');
+            addedBulletIds.push(bid);
+            existing.bullets.push({ id: bid, text: b.text });
+          }
+        }
+        return;
+      }
       newExpId = nextId(v, 'exp');
       const bullets = target.bullets.map((b) => {
         const bid = nextId(v, 'b');
