@@ -104,6 +104,35 @@ describe('vault model', () => {
     expect(parsed.skillCategories).toEqual([{ category: 'Cloud', skills: ['AWS', 'GCP'] }]);
     expect(parsed.skills).toEqual(['AWS', 'GCP']);
   });
+
+  it('merges duplicate experience positions with the same role, company, and dates', () => {
+    const v = normalizeVault({
+      experience: [
+        {
+          id: 'exp_3',
+          role: 'Skipper',
+          company: 'Race for the Baltic',
+          startDate: '2020-05',
+          endDate: '2020-09',
+          bullets: [{ id: 'b_1', text: 'Led crew' }],
+        },
+        {
+          id: 'exp_15',
+          role: 'skipper',
+          company: 'Race for the Baltic',
+          startDate: '2020-05',
+          endDate: '2020-09',
+          bullets: [
+            { id: 'b_2', text: 'Led crew' },
+            { id: 'b_3', text: 'Won leg 2' },
+          ],
+        },
+      ],
+    });
+    expect(v.experience.length).toBe(1);
+    expect(v.experience[0].id).toBe('exp_3');
+    expect(v.experience[0].bullets.map((b) => b.text)).toEqual(['Led crew', 'Won leg 2']);
+  });
 });
 
 describe('parseMarkdownLinks', () => {

@@ -713,6 +713,76 @@ describe('PreviewComponent', () => {
     expect(vs.selectedExperience().map((e) => e.id)).toEqual(['re_1', 'exp_1']);
   });
 
+  it('merges into existing vault role instead of duplicating when promoting a snapshot role with a new bullet', async () => {
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    vs.update((v) => {
+      v.experience = [
+        {
+          id: 'exp_3',
+          role: 'Skipper',
+          company: 'Race for the Baltic',
+          startDate: '2020-05',
+          endDate: '2020-09',
+          bullets: [{ id: 'b_101', text: 'Led offshore crew' }],
+        },
+      ];
+    });
+    vs.loadResumeSnapshot({
+      contact: vs.vault().contact,
+      summary: 'Summary',
+      experience: structuredClone(vs.vault().experience),
+      education: [],
+      certifications: [],
+      skills: [],
+      settings: vs.vault().settings,
+    });
+    comp.toggleEditMode();
+    comp.setBulletDraft('exp_3', 'Won coastal leg');
+    comp.addResumeBullet('exp_3');
+    comp.confirmVaultPrompt();
+
+    expect(vs.vault().experience.length).toBe(1);
+    expect(vs.vault().experience[0].bullets.map((b) => b.text)).toEqual([
+      'Led offshore crew',
+      'Won coastal leg',
+    ]);
+  });
+
+  it('flushes typed bullet draft when clicking Save in edit mode', async () => {
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    vs.update((v) => {
+      v.experience = [
+        {
+          id: 'exp_1',
+          role: 'Engineer',
+          company: 'Acme',
+          startDate: '2022',
+          endDate: 'Present',
+          bullets: [{ id: 'b_1', text: 'Initial bullet' }],
+        },
+      ];
+    });
+    vs.selectAll();
+    comp.toggleEditMode();
+    comp.setBulletDraft('exp_1', 'Flushed on save');
+    comp.toggleEditMode(); // Click Save without pressing Enter / + Add
+
+    expect(vs.selectedExperience()[0].bullets.map((b) => b.text)).toEqual([
+      'Initial bullet',
+      'Flushed on save',
+    ]);
+  });
+
   it('scrolls to preview stage on init when opened in edit mode', (done) => {
     TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents().then(() => {
       const fixture = TestBed.createComponent(PreviewComponent);
