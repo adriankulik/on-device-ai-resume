@@ -116,7 +116,6 @@
         display: inline-block;
         margin-right: 2.5mm;
         color: var(--accent-color);
-        opacity: 0.6;
         font-weight: 700;
         transform: scale(1.1);
       }
@@ -165,7 +164,6 @@
       display: inline-block;
       margin: 0 0.35em;
       color: var(--text-muted);
-      opacity: 0.7;
       font-weight: 400;
     }
 
@@ -268,7 +266,6 @@
         display: inline-block;
         margin-right: 2.2mm;
         color: var(--text-muted);
-        opacity: 0.8;
         font-weight: 700;
         transform: scale(1.1);
       }
@@ -321,7 +318,6 @@
       display: inline-block;
       margin: 0 0.35em;
       color: var(--text-muted);
-      opacity: 0.7;
       font-weight: 400;
     }
 
@@ -347,21 +343,16 @@
     }
 
     ul {
-      padding-left: 3.8mm;
+      padding-left: 4.5mm;
       margin-top: calc(0.8mm * var(--sp));
-      list-style-type: none;
+      list-style-type: '–  ';
 
       li {
-        position: relative;
         margin-bottom: calc(0.7mm * var(--sp));
         line-height: 1.36;
         color: var(--text-secondary);
-        padding-left: 2.5mm;
 
-        &::before {
-          content: '–';
-          position: absolute;
-          left: -1mm;
+        &::marker {
           color: var(--text-muted);
         }
       }
@@ -436,7 +427,6 @@
         display: inline-block;
         margin-right: 2.5mm;
         color: var(--accent-color);
-        opacity: 0.6;
         font-weight: 700;
         transform: scale(1.1);
       }
@@ -483,7 +473,6 @@
       display: inline-block;
       margin: 0 0.35em;
       color: var(--text-muted);
-      opacity: 0.7;
       font-weight: 400;
       font-style: normal;
     }
@@ -900,7 +889,6 @@
     display: inline-block;
     margin: 0 0.35em;
     color: var(--text-muted);
-    opacity: 0.7;
     font-weight: 400;
   }
 
@@ -1006,5 +994,23 @@
 
   .sheet h2 {
     break-after: avoid;
+  }
+
+  .sheet .r-bullet-item {
+    position: static !important;
+    padding-right: 0 !important;
+  }
+
+  .sheet .r-entity {
+    display: inline !important;
+  }
+
+  .sheet .r-sep {
+    display: inline !important;
+    opacity: 1 !important;
+  }
+
+  .sheet .r-section__head {
+    display: block !important;
   }
 }

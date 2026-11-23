@@ -799,4 +799,31 @@ describe('PreviewComponent', () => {
       }, 60);
     });
   });
+
+  it('renders each experience role as a semantic article with h3 immediately followed by ul', async () => {
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    vs.update((v) => {
+      v.experience = [
+        {
+          id: 'exp_1',
+          role: 'AI Engineer',
+          company: 'Capgemini Invent',
+          startDate: '2024-01',
+          endDate: 'Present',
+          bullets: [{ id: 'b_1', text: 'Built LLM workflows' }],
+        },
+      ];
+    });
+    vs.selectAll();
+    fixture.detectChanges();
+
+    const roleEl = fixture.nativeElement.querySelector('article.sheet article.r-role') as HTMLElement | null;
+    expect(roleEl).toBeTruthy();
+    const children = Array.from(roleEl!.children).map((c) => c.tagName);
+    expect(children).toEqual(['H3', 'UL']);
+  });
 });
