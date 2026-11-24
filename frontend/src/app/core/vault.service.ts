@@ -296,6 +296,13 @@ export class VaultService {
     });
   }
 
+  moveBulletToEdge(expId: string, index: number, edge: 'top' | 'bottom'): void {
+    this.update((v) => {
+      const e = v.experience.find((x) => x.id === expId);
+      if (e) moveItemToEdge(e.bullets, index, edge);
+    });
+  }
+
   addBullet(expId: string, text = '', select = true): string {
     let newId = '';
     this.update((v) => {
@@ -379,6 +386,8 @@ export class VaultService {
     const v = this.vault();
     this.selectedBulletIds.set(new Set());
     this.resumeBulletOverrides.set({});
+    this.resumeBulletOrder.set({});
+    this.resumeExperienceOrder.set([]);
     this.resumeOnlyBullets.set({});
     this.hiddenEducationIds.set(new Set(v.education.map((e) => e.id)));
     this.hiddenCertificationIds.set(new Set(v.certifications.map((c) => c.id)));
@@ -434,6 +443,13 @@ export class VaultService {
 function moveItem<T>(arr: T[], index: number, delta: -1 | 1): void {
   const target = index + delta;
   if (index < 0 || index >= arr.length || target < 0 || target >= arr.length) return;
+  const [item] = arr.splice(index, 1);
+  arr.splice(target, 0, item);
+}
+
+function moveItemToEdge<T>(arr: T[], index: number, edge: 'top' | 'bottom'): void {
+  const target = edge === 'top' ? 0 : arr.length - 1;
+  if (index < 0 || index >= arr.length || index === target) return;
   const [item] = arr.splice(index, 1);
   arr.splice(target, 0, item);
 }

@@ -1,7 +1,22 @@
 import { DOCUMENT } from '@angular/common';
 import { AfterViewInit, Component, ElementRef, OnDestroy, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucideArrowDown, LucideArrowUp, LucideCheck, LucideDynamicIcon, LucideExternalLink, LucideFileDown, LucidePencil, LucidePlus, LucideTrash2, LucideX } from '@lucide/angular';
+import {
+  LucideArrowDown,
+  LucideArrowDownToLine,
+  LucideArrowLeft,
+  LucideArrowRight,
+  LucideArrowUp,
+  LucideArrowUpToLine,
+  LucideCheck,
+  LucideDynamicIcon,
+  LucideExternalLink,
+  LucideFileDown,
+  LucidePencil,
+  LucidePlus,
+  LucideTrash2,
+  LucideX,
+} from '@lucide/angular';
 import { CollapsibleComponent } from '../collapsible/collapsible.component';
 import { DropdownComponent } from '../dropdown/dropdown.component';
 import { ModalComponent } from '../modal/modal.component';
@@ -57,6 +72,10 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   readonly closeIcon = LucideX.icon;
   readonly upIcon = LucideArrowUp.icon;
   readonly downIcon = LucideArrowDown.icon;
+  readonly topIcon = LucideArrowUpToLine.icon;
+  readonly bottomIcon = LucideArrowDownToLine.icon;
+  readonly leftIcon = LucideArrowLeft.icon;
+  readonly rightIcon = LucideArrowRight.icon;
 
   private readonly stage = viewChild.required<ElementRef<HTMLElement>>('stage');
   private readonly sheet = viewChild.required<ElementRef<HTMLElement>>('sheet');
@@ -586,6 +605,50 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  moveResumeBulletToEdge(expId: string, bulletId: string, edge: 'top' | 'bottom'): void {
+    const role = this.vs.selectedExperience().find((e) => e.id === expId);
+    if (!role) return;
+    const visIdx = role.bullets.findIndex((b) => b.id === bulletId);
+    const targetVisIdx = edge === 'top' ? 0 : role.bullets.length - 1;
+    if (visIdx < 0 || visIdx === targetVisIdx) return;
+
+    if (this.isResumeOnlyExp(expId)) {
+      this.vs.resumeOnlyExperience.update((list) =>
+        list.map((r) => {
+          if (r.id !== expId) return r;
+          const idx = r.bullets.findIndex((b) => b.id === bulletId);
+          if (idx < 0) return r;
+          const copy = [...r.bullets];
+          const [item] = copy.splice(idx, 1);
+          copy.splice(edge === 'top' ? 0 : copy.length, 0, item);
+          return { ...r, bullets: copy };
+        }),
+      );
+      return;
+    }
+
+    const vaultRole = this.vs.vault().experience.find((e) => e.id === expId);
+    if (vaultRole) {
+      const allInVault = role.bullets.every((b) => vaultRole.bullets.some((vb) => vb.id === b.id));
+      if (allInVault && !this.vs.resumeBulletOrder()[expId]?.length) {
+        const idx = vaultRole.bullets.findIndex((b) => b.id === bulletId);
+        if (idx >= 0) {
+          this.vs.update((v) => {
+            const r = v.experience.find((e) => e.id === expId);
+            if (!r) return;
+            const [item] = r.bullets.splice(idx, 1);
+            r.bullets.splice(edge === 'top' ? 0 : r.bullets.length, 0, item);
+          });
+          return;
+        }
+      }
+      const ids = role.bullets.map((b) => b.id);
+      const [id] = ids.splice(visIdx, 1);
+      ids.splice(edge === 'top' ? 0 : ids.length, 0, id);
+      this.vs.resumeBulletOrder.update((map) => ({ ...map, [expId]: ids }));
+    }
+  }
+
   updateNewRoleField<K extends 'role' | 'company' | 'startDate' | 'endDate' | 'bullet'>(key: K, value: string): void {
     this.newRole.update((r) => ({ ...r, [key]: value }));
   }
@@ -691,11 +754,17 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
       this.pendingVaultPrompt.set({
         label: 'bullet point',
         commit: () => {
-          this.vs.addBullet(expId, text, true);
+          const newId = this.vs.addBullet(expId, text, true);
           this.vs.resumeOnlyBullets.update((map) => ({
             ...map,
             [expId]: (map[expId] ?? []).filter((b) => b.id !== bulletId),
           }));
+          if (this.vs.resumeBulletOrder()[expId]?.includes(bulletId)) {
+            this.vs.resumeBulletOrder.update((map) => ({
+              ...map,
+              [expId]: (map[expId] ?? []).map((bid) => (bid === bulletId ? newId : bid)),
+            }));
+          }
         },
       });
     } else {
@@ -747,8 +816,10 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   private promoteResumeOnlyExperience(expId: string): void {
     const target = this.vs.resumeOnlyExperience().find((e) => e.id === expId);
     if (!target) return;
+    const prevExpOrder = this.vs.selectedExperience().map((e) => e.id);
     let newExpId = '';
     const addedBulletIds: string[] = [];
+    const overridesToKeep: Record<string, string> = {};
     this.vs.update((v) => {
       const norm = (s: string) => s.trim().toLowerCase();
       const existing = v.experience.find(
@@ -767,6 +838,9 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
           const match = existing.bullets.find((eb) => eb.id === b.id || norm(eb.text) === norm(b.text));
           if (match) {
             addedBulletIds.push(match.id);
+            if (match.id === b.id && b.text.trim() && b.text !== match.text) {
+              overridesToKeep[match.id] = b.text;
+            }
           } else if (b.text.trim() && !seenTexts.has(norm(b.text))) {
             seenTexts.add(norm(b.text));
             const bid = nextId(v, 'b');
@@ -794,9 +868,21 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     for (const bid of addedBulletIds) {
       this.vs.toggleBullet(bid, true);
     }
+    if (Object.keys(overridesToKeep).length > 0) {
+      this.vs.resumeBulletOverrides.update((m) => ({ ...m, ...overridesToKeep }));
+    }
     this.vs.resumeOnlyExperience.update((list) => list.filter((e) => e.id !== expId));
-    if (newExpId && this.vs.resumeExperienceOrder().includes(expId)) {
-      this.vs.resumeExperienceOrder.update((ids) => ids.map((id) => (id === expId ? newExpId : id)));
+    if (newExpId && prevExpOrder.includes(expId)) {
+      this.vs.resumeExperienceOrder.set([
+        ...new Set(prevExpOrder.map((id) => (id === expId ? newExpId : id))),
+      ]);
+    }
+    if (newExpId && addedBulletIds.length) {
+      this.vs.resumeBulletOrder.update((map) => {
+        const prior = newExpId !== expId ? (map[newExpId] ?? []) : [];
+        const merged = prior.length ? [...new Set([...prior, ...addedBulletIds])] : [...addedBulletIds];
+        return { ...map, [newExpId]: merged };
+      });
     }
   }
 
@@ -1054,6 +1140,72 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   removeResumeSkill(skill: string): void {
     const base = this.vs.tailoredSkills() ?? [...this.vs.vault().skills];
     this.vs.tailoredSkills.set(base.filter((s) => s !== skill));
+  }
+
+  moveSkillCategory(category: string, delta: -1 | 1): void {
+    const visible = this.editSkillCategories();
+    const visIdx = visible.findIndex((g) => g.category === category);
+    const targetVisIdx = visIdx + delta;
+    if (visIdx < 0 || targetVisIdx < 0 || targetVisIdx >= visible.length) return;
+    const otherCategory = visible[targetVisIdx].category;
+
+    this.updateSkillCategories((cats) => {
+      for (const name of [category, otherCategory]) {
+        if (!cats.some((c) => c.category === name)) {
+          const vis = visible.find((g) => g.category === name);
+          cats.push({ category: name, skills: [...(vis?.skills ?? [])] });
+        }
+      }
+      const i1 = cats.findIndex((c) => c.category === category);
+      const i2 = cats.findIndex((c) => c.category === otherCategory);
+      if (i1 >= 0 && i2 >= 0) {
+        [cats[i1], cats[i2]] = [cats[i2], cats[i1]];
+      }
+      return cats;
+    });
+  }
+
+  moveSkillInCategory(category: string, skill: string, delta: -1 | 1): void {
+    const grp = this.editSkillCategories().find((g) => g.category === category);
+    if (!grp) return;
+    const visIdx = grp.skills.indexOf(skill);
+    const targetVisIdx = visIdx + delta;
+    if (visIdx < 0 || targetVisIdx < 0 || targetVisIdx >= grp.skills.length) return;
+    const otherSkill = grp.skills[targetVisIdx];
+
+    this.updateSkillCategories((cats) => {
+      let idx = cats.findIndex((c) => c.category === category);
+      if (idx < 0) {
+        cats.push({ category, skills: [...grp.skills] });
+        idx = cats.length - 1;
+      }
+      const list = [...cats[idx].skills];
+      for (const sk of grp.skills) {
+        if (!list.includes(sk)) list.push(sk);
+      }
+      const i1 = list.indexOf(skill);
+      const i2 = list.indexOf(otherSkill);
+      if (i1 >= 0 && i2 >= 0) {
+        [list[i1], list[i2]] = [list[i2], list[i1]];
+      }
+      cats[idx] = { ...cats[idx], skills: list };
+      return cats;
+    });
+  }
+
+  moveResumeSkill(skill: string, delta: -1 | 1): void {
+    const list = [...this.skills()];
+    const idx = list.indexOf(skill);
+    const target = idx + delta;
+    if (idx < 0 || target < 0 || target >= list.length) return;
+    [list[idx], list[target]] = [list[target], list[idx]];
+    if (this.vs.tailoredSkills() !== null) {
+      this.vs.tailoredSkills.set(list);
+    } else {
+      this.vs.update((v) => {
+        v.skills = list;
+      });
+    }
   }
 
   startEditSummary(): void {

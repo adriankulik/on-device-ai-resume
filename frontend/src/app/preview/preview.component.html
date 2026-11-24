@@ -381,11 +381,17 @@
                         </span>
                         @if (editMode()) {
                           <span class="r-edit-actions no-print">
+                            <button type="button" class="r-edit-btn" [disabled]="bFirst" [attr.aria-label]="'Move bullet ' + b.id + ' to top'" title="Move to top" (click)="moveResumeBulletToEdge(e.id, b.id, 'top')">
+                              <svg lucideIcon [lucideIcon]="topIcon" [size]="12" aria-hidden="true"></svg>
+                            </button>
                             <button type="button" class="r-edit-btn" [disabled]="bFirst" [attr.aria-label]="'Move bullet ' + b.id + ' up'" (click)="moveResumeBullet(e.id, b.id, -1)">
                               <svg lucideIcon [lucideIcon]="upIcon" [size]="12" aria-hidden="true"></svg>
                             </button>
                             <button type="button" class="r-edit-btn" [disabled]="bLast" [attr.aria-label]="'Move bullet ' + b.id + ' down'" (click)="moveResumeBullet(e.id, b.id, 1)">
                               <svg lucideIcon [lucideIcon]="downIcon" [size]="12" aria-hidden="true"></svg>
+                            </button>
+                            <button type="button" class="r-edit-btn" [disabled]="bLast" [attr.aria-label]="'Move bullet ' + b.id + ' to bottom'" title="Move to bottom" (click)="moveResumeBulletToEdge(e.id, b.id, 'bottom')">
+                              <svg lucideIcon [lucideIcon]="bottomIcon" [size]="12" aria-hidden="true"></svg>
                             </button>
                             <button type="button" class="r-edit-btn" [attr.aria-label]="'Edit bullet ' + b.id" (click)="startEditBullet(e.id, b)">
                               Edit
@@ -540,7 +546,7 @@
               <div class="r-skills-edit no-print">
                 @if (categorizedSkills().length || activeSkillCategories().length) {
                   <div class="r-skills-cats-edit">
-                    @for (grp of editSkillCategories(); track grp.category) {
+                    @for (grp of editSkillCategories(); track grp.category; let gFirst = $first, gLast = $last) {
                       <div class="r-skill-cat-edit">
                         <div class="r-skill-cat-edit__head">
                           <input
@@ -551,6 +557,12 @@
                             (change)="renameSkillCategory(grp.category, $any($event.target).value)"
                             (keydown.enter)="$any($event.target).blur()"
                           />
+                          <button type="button" class="r-edit-btn" [disabled]="gFirst" [attr.aria-label]="'Move category ' + grp.category + ' up'" (click)="moveSkillCategory(grp.category, -1)">
+                            <svg lucideIcon [lucideIcon]="upIcon" [size]="12" aria-hidden="true"></svg>
+                          </button>
+                          <button type="button" class="r-edit-btn" [disabled]="gLast" [attr.aria-label]="'Move category ' + grp.category + ' down'" (click)="moveSkillCategory(grp.category, 1)">
+                            <svg lucideIcon [lucideIcon]="downIcon" [size]="12" aria-hidden="true"></svg>
+                          </button>
                           <button
                             type="button"
                             class="r-edit-btn r-edit-btn--danger"
@@ -561,9 +573,15 @@
                           </button>
                         </div>
                         <div class="r-skill-cat-edit__chips">
-                          @for (sk of grp.skills; track sk) {
+                          @for (sk of grp.skills; track sk; let sFirst = $first, sLast = $last) {
                             <span class="r-skill-chip">
+                              <button type="button" class="r-edit-btn" [disabled]="sFirst" [attr.aria-label]="'Move skill ' + sk + ' left'" (click)="moveSkillInCategory(grp.category, sk, -1)">
+                                <svg lucideIcon [lucideIcon]="leftIcon" [size]="10" aria-hidden="true"></svg>
+                              </button>
                               {{ sk }}
+                              <button type="button" class="r-edit-btn" [disabled]="sLast" [attr.aria-label]="'Move skill ' + sk + ' right'" (click)="moveSkillInCategory(grp.category, sk, 1)">
+                                <svg lucideIcon [lucideIcon]="rightIcon" [size]="10" aria-hidden="true"></svg>
+                              </button>
                               <button type="button" class="r-edit-btn r-edit-btn--danger" [attr.aria-label]="'Remove ' + sk" (click)="removeResumeSkill(sk)">×</button>
                             </span>
                           }
@@ -582,9 +600,15 @@
                     }
                   </div>
                 } @else {
-                  @for (sk of skills(); track sk) {
+                  @for (sk of skills(); track sk; let sFirst = $first, sLast = $last) {
                     <span class="r-skill-chip">
+                      <button type="button" class="r-edit-btn" [disabled]="sFirst" [attr.aria-label]="'Move skill ' + sk + ' left'" (click)="moveResumeSkill(sk, -1)">
+                        <svg lucideIcon [lucideIcon]="leftIcon" [size]="10" aria-hidden="true"></svg>
+                      </button>
                       {{ sk }}
+                      <button type="button" class="r-edit-btn" [disabled]="sLast" [attr.aria-label]="'Move skill ' + sk + ' right'" (click)="moveResumeSkill(sk, 1)">
+                        <svg lucideIcon [lucideIcon]="rightIcon" [size]="10" aria-hidden="true"></svg>
+                      </button>
                       <button type="button" class="r-edit-btn r-edit-btn--danger" [attr.aria-label]="'Remove ' + sk" (click)="removeResumeSkill(sk)">×</button>
                     </span>
                   }
