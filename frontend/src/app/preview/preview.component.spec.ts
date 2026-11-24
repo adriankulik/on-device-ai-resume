@@ -826,4 +826,210 @@ describe('PreviewComponent', () => {
     const children = Array.from(roleEl!.children).map((c) => c.tagName);
     expect(children).toEqual(['H3', 'UL']);
   });
+
+  it('keeps role position and custom bullet order when promoting a snapshot role low on the list', async () => {
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    // Vault starts with Role 1 and Role 2; snapshot also has Role 3 (a new or snapshot-only role) at position 3
+    vs.update((v) => {
+      v.experience = [
+        {
+          id: 'exp_1',
+          role: 'Lead Engineer',
+          company: 'Alpha',
+          startDate: '2023-01',
+          endDate: 'Present',
+          bullets: [{ id: 'b_1', text: 'Led team' }],
+        },
+        {
+          id: 'exp_2',
+          role: 'Senior Engineer',
+          company: 'Beta',
+          startDate: '2021-01',
+          endDate: '2022-12',
+          bullets: [{ id: 'b_2', text: 'Built API' }],
+        },
+      ];
+    });
+    vs.loadResumeSnapshot({
+      contact: vs.vault().contact,
+      summary: 'Summary',
+      experience: [
+        {
+          id: 'exp_1',
+          role: 'Lead Engineer',
+          company: 'Alpha',
+          startDate: '2023-01',
+          endDate: 'Present',
+          bullets: [{ id: 'b_1', text: 'Led team' }],
+        },
+        {
+          id: 'exp_2',
+          role: 'Senior Engineer',
+          company: 'Beta',
+          startDate: '2021-01',
+          endDate: '2022-12',
+          bullets: [{ id: 'b_2', text: 'Built API' }],
+        },
+        {
+          id: 'exp_3',
+          role: 'Junior Engineer',
+          company: 'Gamma',
+          startDate: '2019-01',
+          endDate: '2020-12',
+          bullets: [
+            { id: 'b_3a', text: 'First Gamma bullet' },
+            { id: 'b_3b', text: 'Second Gamma bullet' },
+          ],
+        },
+      ],
+      education: [],
+      certifications: [],
+      skills: [],
+      settings: vs.vault().settings,
+    });
+    comp.toggleEditMode();
+    fixture.detectChanges();
+
+    // Reorder Gamma bullets and add a new bullet to Gamma (3rd on the list), then promote to vault
+    comp.moveResumeBullet('exp_3', 'b_3b', -1);
+    comp.setBulletDraft('exp_3', 'Third Gamma bullet');
+    comp.addResumeBullet('exp_3');
+    expect(vs.selectedExperience().map((e) => e.company)).toEqual(['Alpha', 'Beta', 'Gamma']);
+    expect(vs.selectedExperience()[2].bullets.map((b) => b.text)).toEqual([
+      'Second Gamma bullet',
+      'First Gamma bullet',
+      'Third Gamma bullet',
+    ]);
+
+    comp.confirmVaultPrompt();
+    fixture.detectChanges();
+
+    // Gamma must stay at index 2 (NOT hoisted to top) and retain its exact bullet order
+    expect(vs.selectedExperience().map((e) => e.company)).toEqual(['Alpha', 'Beta', 'Gamma']);
+    expect(vs.selectedExperience()[2].bullets.map((b) => b.text)).toEqual([
+      'Second Gamma bullet',
+      'First Gamma bullet',
+      'Third Gamma bullet',
+    ]);
+  });
+
+  it('moves bullets directly to the top or bottom in edit mode for both vault and snapshot roles', async () => {
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    vs.update((v) => {
+      v.experience = [
+        {
+          id: 'exp_1',
+          role: 'Engineer',
+          company: 'Acme',
+          startDate: '2022-01',
+          endDate: 'Present',
+          bullets: [
+            { id: 'b_1', text: 'First' },
+            { id: 'b_2', text: 'Second' },
+            { id: 'b_3', text: 'Third' },
+          ],
+        },
+      ];
+    });
+    vs.selectAll();
+    comp.toggleEditMode();
+    fixture.detectChanges();
+
+    const moveTop = fixture.nativeElement.querySelector('button[aria-label="Move bullet b_3 to top"]') as HTMLButtonElement | null;
+    expect(moveTop).toBeTruthy();
+    moveTop?.click();
+    fixture.detectChanges();
+    expect(vs.selectedExperience()[0].bullets.map((b) => b.id)).toEqual(['b_3', 'b_1', 'b_2']);
+
+    const moveBottom = fixture.nativeElement.querySelector('button[aria-label="Move bullet b_3 to bottom"]') as HTMLButtonElement | null;
+    expect(moveBottom).toBeTruthy();
+    moveBottom?.click();
+    fixture.detectChanges();
+    expect(vs.selectedExperience()[0].bullets.map((b) => b.id)).toEqual(['b_1', 'b_2', 'b_3']);
+
+    // Snapshot / resume-only role
+    vs.loadResumeSnapshot({
+      contact: vs.vault().contact,
+      summary: 'Summary',
+      experience: [
+        {
+          id: 're_1',
+          role: 'Advisor',
+          company: 'Beta',
+          startDate: '2020-01',
+          endDate: '2021-01',
+          bullets: [
+            { id: 'rb_1', text: 'One' },
+            { id: 'rb_2', text: 'Two' },
+            { id: 'rb_3', text: 'Three' },
+          ],
+        },
+      ],
+      education: [],
+      certifications: [],
+      skills: [],
+      settings: vs.vault().settings,
+    });
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('button[aria-label="Move bullet rb_3 to top"]') as HTMLButtonElement | null)?.click();
+    fixture.detectChanges();
+    expect(vs.selectedExperience()[0].bullets.map((b) => b.id)).toEqual(['rb_3', 'rb_1', 'rb_2']);
+
+    (fixture.nativeElement.querySelector('button[aria-label="Move bullet rb_3 to bottom"]') as HTMLButtonElement | null)?.click();
+    fixture.detectChanges();
+    expect(vs.selectedExperience()[0].bullets.map((b) => b.id)).toEqual(['rb_1', 'rb_2', 'rb_3']);
+  });
+
+  it('reorders flat skills, skills within categories, and skill categories in edit mode', async () => {
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    // 1. Flat skills reordering
+    vs.update((v) => {
+      v.skills = ['TypeScript', 'Angular', 'Node.js'];
+      v.skillCategories = [];
+    });
+    comp.toggleEditMode();
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('button[aria-label="Move skill Angular left"]') as HTMLButtonElement | null)?.click();
+    fixture.detectChanges();
+    expect(comp.skills()).toEqual(['Angular', 'TypeScript', 'Node.js']);
+
+    (fixture.nativeElement.querySelector('button[aria-label="Move skill Angular right"]') as HTMLButtonElement | null)?.click();
+    fixture.detectChanges();
+    expect(comp.skills()).toEqual(['TypeScript', 'Angular', 'Node.js']);
+
+    // 2. Categorized skills & category reordering
+    vs.update((v) => {
+      v.skills = ['TypeScript', 'Angular', 'Docker', 'AWS'];
+      v.skillCategories = [
+        { category: 'Frontend', skills: ['TypeScript', 'Angular'] },
+        { category: 'Cloud', skills: ['Docker', 'AWS'] },
+      ];
+    });
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('button[aria-label="Move skill Angular left"]') as HTMLButtonElement | null)?.click();
+    fixture.detectChanges();
+    expect(comp.categorizedSkills()[0].skills).toEqual(['Angular', 'TypeScript']);
+
+    (fixture.nativeElement.querySelector('button[aria-label="Move category Cloud up"]') as HTMLButtonElement | null)?.click();
+    fixture.detectChanges();
+    expect(comp.categorizedSkills().map((c) => c.category)).toEqual(['Cloud', 'Frontend']);
+  });
 });

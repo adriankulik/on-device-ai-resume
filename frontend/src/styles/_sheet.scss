@@ -624,6 +624,11 @@
       outline-offset: 2px;
     }
 
+    &:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
     &--primary {
       background: v.$light-ink-primary;
       border-color: v.$light-ink-primary;

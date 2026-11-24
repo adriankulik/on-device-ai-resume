@@ -215,4 +215,53 @@ describe('VaultService persistence', () => {
 
     expect(vs.selectedExperience().map((e) => e.id)).toEqual(['exp_1', 're_extra']);
   });
+
+  it('clears stale resumeExperienceOrder and resumeBulletOrder on loadResumeSnapshot', async () => {
+    const vs = TestBed.inject(VaultService);
+    await tick();
+
+    vs.resumeExperienceOrder.set(['exp_2', 'exp_1']);
+    vs.resumeBulletOrder.set({ exp_1: ['b_2', 'b_1'] });
+
+    vs.loadResumeSnapshot({
+      contact: vs.vault().contact,
+      summary: 'Snap',
+      experience: [],
+      education: [],
+      certifications: [],
+      skills: [],
+      settings: vs.vault().settings,
+    });
+
+    expect(vs.resumeExperienceOrder()).toEqual([]);
+    expect(vs.resumeBulletOrder()).toEqual({});
+  });
+
+  it('moves bullets directly to the top or bottom with moveBulletToEdge', async () => {
+    const vs = TestBed.inject(VaultService);
+    await tick();
+
+    vs.update((v) => {
+      v.experience = [
+        {
+          id: 'exp_1',
+          role: 'Engineer',
+          company: 'Acme',
+          startDate: '2022',
+          endDate: 'Present',
+          bullets: [
+            { id: 'b_1', text: 'One' },
+            { id: 'b_2', text: 'Two' },
+            { id: 'b_3', text: 'Three' },
+          ],
+        },
+      ];
+    });
+
+    vs.moveBulletToEdge('exp_1', 2, 'top');
+    expect(vs.vault().experience[0].bullets.map((b) => b.id)).toEqual(['b_3', 'b_1', 'b_2']);
+
+    vs.moveBulletToEdge('exp_1', 0, 'bottom');
+    expect(vs.vault().experience[0].bullets.map((b) => b.id)).toEqual(['b_1', 'b_2', 'b_3']);
+  });
 });

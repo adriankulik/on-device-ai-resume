@@ -242,8 +242,10 @@
               <li>
                 <textarea rows="2" [attr.aria-label]="'Bullet ' + b.id" [(ngModel)]="b.text" (ngModelChange)="vs.touch()"></textarea>
                 <div class="row">
+                  <button app-button type="button" variant="ghost" size="sm" [iconOnly]="true" [iconLeading]="topIcon" [disabled]="bFirst" [attr.aria-label]="'Move bullet ' + b.id + ' to top'" title="Move to top" (click)="vs.moveBulletToEdge(e.id, bi, 'top')"></button>
                   <button app-button type="button" variant="ghost" size="sm" [iconOnly]="true" [iconLeading]="upIcon" [disabled]="bFirst" [attr.aria-label]="'Move bullet ' + b.id + ' up'" (click)="vs.moveBullet(e.id, bi, -1)"></button>
                   <button app-button type="button" variant="ghost" size="sm" [iconOnly]="true" [iconLeading]="downIcon" [disabled]="bLast" [attr.aria-label]="'Move bullet ' + b.id + ' down'" (click)="vs.moveBullet(e.id, bi, 1)"></button>
+                  <button app-button type="button" variant="ghost" size="sm" [iconOnly]="true" [iconLeading]="bottomIcon" [disabled]="bLast" [attr.aria-label]="'Move bullet ' + b.id + ' to bottom'" title="Move to bottom" (click)="vs.moveBulletToEdge(e.id, bi, 'bottom')"></button>
                   <button app-button type="button" variant="close" size="sm" [iconOnly]="true" [iconLeading]="removeIcon" [attr.aria-label]="'Delete bullet ' + b.id" (click)="vs.removeBullet(e.id, b.id)"></button>
                 </div>
               </li>
