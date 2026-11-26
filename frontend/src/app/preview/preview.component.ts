@@ -993,6 +993,41 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     });
   }
 
+  moveResumeCertification(certId: string, delta: -1 | 1): void {
+    const visible = this.vs.visibleCertifications();
+    const visIdx = visible.findIndex((c) => c.id === certId);
+    const targetVisIdx = visIdx + delta;
+    if (visIdx < 0 || targetVisIdx < 0 || targetVisIdx >= visible.length) return;
+    const otherId = visible[targetVisIdx].id;
+
+    const hasOrder = this.vs.resumeCertificationOrder().length > 0;
+    const isResumeOnly = (id: string) => this.vs.resumeOnlyCertifications().some((c) => c.id === id);
+    const r1 = isResumeOnly(certId) ? this.vs.resumeOnlyCertifications().findIndex((c) => c.id === certId) : -1;
+    const r2 = isResumeOnly(otherId) ? this.vs.resumeOnlyCertifications().findIndex((c) => c.id === otherId) : -1;
+    if (!hasOrder && r1 !== -1 && r2 !== -1) {
+      this.vs.resumeOnlyCertifications.update((list) => {
+        const copy = [...list];
+        [copy[r1], copy[r2]] = [copy[r2], copy[r1]];
+        return copy;
+      });
+      return;
+    }
+
+    const vaultCerts = this.vs.vault().certifications;
+    const i1 = !isResumeOnly(certId) ? vaultCerts.findIndex((c) => c.id === certId) : -1;
+    const i2 = !isResumeOnly(otherId) ? vaultCerts.findIndex((c) => c.id === otherId) : -1;
+    if (!hasOrder && i1 !== -1 && i2 !== -1) {
+      this.vs.update((v) => {
+        [v.certifications[i1], v.certifications[i2]] = [v.certifications[i2], v.certifications[i1]];
+      });
+      return;
+    }
+
+    const ids = visible.map((c) => c.id);
+    [ids[visIdx], ids[targetVisIdx]] = [ids[targetVisIdx], ids[visIdx]];
+    this.vs.resumeCertificationOrder.set(ids);
+  }
+
   private flushSkillDrafts(): void {
     if (this.newSkillCategory().trim()) {
       this.addSkillCategory();

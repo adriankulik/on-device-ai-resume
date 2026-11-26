@@ -511,8 +511,19 @@
             }
             @if (vs.visibleCertifications().length) {
               <div class="r-certs">
-                @for (cert of vs.visibleCertifications(); track cert.id) {
+                @for (cert of vs.visibleCertifications(); track cert.id; let cFirst = $first, cLast = $last) {
                   <span class="r-cert-chip">
+                    @if (editMode()) {
+                      <button
+                        type="button"
+                        class="r-edit-btn no-print"
+                        [disabled]="cFirst"
+                        [attr.aria-label]="'Move certification ' + (cert.name || cert.id) + ' left'"
+                        (click)="moveResumeCertification(cert.id, -1)"
+                      >
+                        <svg lucideIcon [lucideIcon]="leftIcon" [size]="10" aria-hidden="true"></svg>
+                      </button>
+                    }
                     @if (cert.name) {
                       <span class="r-cert-chip__name">{{ cert.name }}</span>
                     }
@@ -523,6 +534,15 @@
                       <span class="r-cert-chip__meta">({{ cert.year }})</span>
                     }
                     @if (editMode()) {
+                      <button
+                        type="button"
+                        class="r-edit-btn no-print"
+                        [disabled]="cLast"
+                        [attr.aria-label]="'Move certification ' + (cert.name || cert.id) + ' right'"
+                        (click)="moveResumeCertification(cert.id, 1)"
+                      >
+                        <svg lucideIcon [lucideIcon]="rightIcon" [size]="10" aria-hidden="true"></svg>
+                      </button>
                       <button
                         type="button"
                         class="r-edit-btn r-edit-btn--danger no-print"

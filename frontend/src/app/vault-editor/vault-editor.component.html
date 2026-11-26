@@ -286,13 +286,17 @@
 
   @case ('certifications') {
     <app-modal title="Edit certifications" (closed)="dialog.set(null)">
-      @for (cert of vs.vault().certifications; track cert.id) {
+      @for (cert of vs.vault().certifications; track cert.id; let ci = $index, cFirst = $first, cLast = $last) {
         <fieldset class="role">
           <legend>{{ cert.id }}</legend>
           <label>Certification <input type="text" placeholder="e.g. AWS Certified Solutions Architect" [(ngModel)]="cert.name" (ngModelChange)="vs.touch()" /></label>
           <label>Issuer <input type="text" placeholder="e.g. Amazon Web Services" [(ngModel)]="cert.issuer" (ngModelChange)="vs.touch()" /></label>
           <label>Year (optional) <input type="text" placeholder="e.g. 2024" [(ngModel)]="cert.year" (ngModelChange)="vs.touch()" /></label>
-          <button app-button type="button" variant="danger" size="sm" (click)="vs.removeCertification(cert.id)">Delete</button>
+          <div class="row wrap">
+            <button app-button type="button" variant="ghost" size="sm" [iconOnly]="true" [iconLeading]="upIcon" [disabled]="cFirst" [attr.aria-label]="'Move certification ' + cert.id + ' up'" (click)="vs.moveCertification(ci, -1)"></button>
+            <button app-button type="button" variant="ghost" size="sm" [iconOnly]="true" [iconLeading]="downIcon" [disabled]="cLast" [attr.aria-label]="'Move certification ' + cert.id + ' down'" (click)="vs.moveCertification(ci, 1)"></button>
+            <button app-button type="button" variant="danger" size="sm" (click)="vs.removeCertification(cert.id)">Delete</button>
+          </div>
         </fieldset>
       }
       <div class="row wrap">

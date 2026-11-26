@@ -21,6 +21,7 @@ interface SavedTailoredState {
   hiddenEducationIds?: string[];
   resumeOnlyCertifications?: Certification[];
   hiddenCertificationIds?: string[];
+  resumeCertificationOrder?: string[];
   hiddenSummary?: boolean;
   snapshotContact?: Contact | null;
 }
@@ -55,6 +56,7 @@ export class VaultService {
   readonly hiddenEducationIds = signal<Set<string>>(new Set());
   readonly resumeOnlyCertifications = signal<Certification[]>([]);
   readonly hiddenCertificationIds = signal<Set<string>>(new Set());
+  readonly resumeCertificationOrder = signal<string[]>([]);
   readonly hiddenSummary = signal(false);
   readonly snapshotContact = signal<Contact | null>(null);
 
@@ -90,6 +92,7 @@ export class VaultService {
         hiddenEducationIds: Array.from(this.hiddenEducationIds()),
         resumeOnlyCertifications: this.resumeOnlyCertifications(),
         hiddenCertificationIds: Array.from(this.hiddenCertificationIds()),
+        resumeCertificationOrder: this.resumeCertificationOrder(),
         hiddenSummary: this.hiddenSummary(),
         snapshotContact: this.snapshotContact(),
       };
@@ -174,6 +177,9 @@ export class VaultService {
     }
     if (Array.isArray(tailored.hiddenCertificationIds)) {
       this.hiddenCertificationIds.set(new Set(tailored.hiddenCertificationIds));
+    }
+    if (Array.isArray(tailored.resumeCertificationOrder)) {
+      this.resumeCertificationOrder.set(tailored.resumeCertificationOrder);
     }
     if (typeof tailored.hiddenSummary === 'boolean') {
       this.hiddenSummary.set(tailored.hiddenSummary);
@@ -337,6 +343,10 @@ export class VaultService {
     this.update((v) => (v.certifications = v.certifications.filter((c) => c.id !== id)));
   }
 
+  moveCertification(index: number, delta: -1 | 1): void {
+    this.update((v) => moveItem(v.certifications, index, delta));
+  }
+
   /** Experience filtered to selected bullets plus any resume-only additions. */
   selectedExperience = computed<Experience[]>(() => {
     const sel = this.selectedBulletIds();
@@ -378,7 +388,16 @@ export class VaultService {
   /** Certification entries from the vault (excluding hidden ones) plus resume-only additions. */
   visibleCertifications = computed<Certification[]>(() => {
     const hidden = this.hiddenCertificationIds();
-    return [...this.vault().certifications.filter((c) => !hidden.has(c.id)), ...this.resumeOnlyCertifications()];
+    const combined = [
+      ...this.vault().certifications.filter((c) => !hidden.has(c.id)),
+      ...this.resumeOnlyCertifications(),
+    ];
+    const order = this.resumeCertificationOrder();
+    if (order.length) {
+      const pos = new Map(order.map((id, i) => [id, i]));
+      combined.sort((a, b) => (pos.get(a.id) ?? Infinity) - (pos.get(b.id) ?? Infinity));
+    }
+    return combined;
   });
 
   /** Loads a point-in-time resume snapshot into the preview/editor without mutating the Master Vault. */
@@ -388,6 +407,7 @@ export class VaultService {
     this.resumeBulletOverrides.set({});
     this.resumeBulletOrder.set({});
     this.resumeExperienceOrder.set([]);
+    this.resumeCertificationOrder.set([]);
     this.resumeOnlyBullets.set({});
     this.hiddenEducationIds.set(new Set(v.education.map((e) => e.id)));
     this.hiddenCertificationIds.set(new Set(v.certifications.map((c) => c.id)));
@@ -424,6 +444,7 @@ export class VaultService {
     this.hiddenEducationIds.set(new Set());
     this.resumeOnlyCertifications.set([]);
     this.hiddenCertificationIds.set(new Set());
+    this.resumeCertificationOrder.set([]);
     this.hiddenSummary.set(false);
     this.snapshotContact.set(null);
   }

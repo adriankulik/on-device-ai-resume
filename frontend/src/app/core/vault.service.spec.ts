@@ -264,4 +264,22 @@ describe('VaultService persistence', () => {
     vs.moveBulletToEdge('exp_1', 0, 'bottom');
     expect(vs.vault().experience[0].bullets.map((b) => b.id)).toEqual(['b_1', 'b_2', 'b_3']);
   });
+
+  it('reorders certifications in the vault via moveCertification', async () => {
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    vs.update((v) => {
+      v.certifications = [
+        { id: 'cert_1', name: 'AWS SAA', issuer: 'AWS', year: '2024' },
+        { id: 'cert_2', name: 'CKA', issuer: 'CNCF', year: '2025' },
+      ];
+    });
+
+    vs.moveCertification(0, 1);
+    expect(vs.vault().certifications.map((c) => c.id)).toEqual(['cert_2', 'cert_1']);
+
+    vs.moveCertification(1, -1);
+    expect(vs.vault().certifications.map((c) => c.id)).toEqual(['cert_1', 'cert_2']);
+  });
 });

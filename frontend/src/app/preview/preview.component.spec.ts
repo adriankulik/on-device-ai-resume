@@ -1032,4 +1032,38 @@ describe('PreviewComponent', () => {
     fixture.detectChanges();
     expect(comp.categorizedSkills().map((c) => c.category)).toEqual(['Cloud', 'Frontend']);
   });
+
+  it('reorders certifications left and right in edit mode (including mixed vault and resume-only)', async () => {
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const comp = fixture.componentInstance;
+
+    vs.update((v) => {
+      v.certifications = [
+        { id: 'cert_1', name: 'AWS SAA', issuer: 'AWS', year: '2024' },
+        { id: 'cert_2', name: 'CKA', issuer: 'CNCF', year: '2025' },
+      ];
+    });
+    vs.resumeOnlyCertifications.set([
+      { id: 'rcert_1', name: 'Terraform Associate', issuer: 'HashiCorp', year: '2025' },
+    ]);
+
+    comp.toggleEditMode();
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('button[aria-label="Move certification CKA left"]') as HTMLButtonElement | null)?.click();
+    fixture.detectChanges();
+    expect(vs.visibleCertifications().map((c) => c.id)).toEqual(['cert_2', 'cert_1', 'rcert_1']);
+
+    (fixture.nativeElement.querySelector('button[aria-label="Move certification Terraform Associate left"]') as HTMLButtonElement | null)?.click();
+    fixture.detectChanges();
+    expect(vs.visibleCertifications().map((c) => c.id)).toEqual(['cert_2', 'rcert_1', 'cert_1']);
+
+    (fixture.nativeElement.querySelector('button[aria-label="Move certification Terraform Associate right"]') as HTMLButtonElement | null)?.click();
+    fixture.detectChanges();
+    expect(vs.visibleCertifications().map((c) => c.id)).toEqual(['cert_2', 'cert_1', 'rcert_1']);
+  });
 });
