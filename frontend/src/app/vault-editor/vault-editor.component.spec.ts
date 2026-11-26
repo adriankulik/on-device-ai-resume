@@ -176,6 +176,29 @@ describe('VaultEditorComponent', () => {
     expect(vs.vault().experience[1].bullets.map((b) => b.id)).toEqual(['b_2', 'b_1']);
   });
 
+  it('reorders certifications via moveCertification in the certifications modal', async () => {
+    await TestBed.configureTestingModule({ imports: [VaultEditorComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(VaultEditorComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    vs.update((v) => {
+      v.certifications = [
+        { id: 'cert_1', name: 'AWS SAA', issuer: 'AWS', year: '2024' },
+        { id: 'cert_2', name: 'CKA', issuer: 'CNCF', year: '2025' },
+      ];
+    });
+
+    comp.dialog.set('certifications');
+    fixture.detectChanges();
+
+    const moveDownBtn = fixture.nativeElement.querySelector('button[aria-label="Move certification cert_1 down"]') as HTMLButtonElement | null;
+    expect(moveDownBtn).toBeTruthy();
+    moveDownBtn?.click();
+    expect(vs.vault().certifications.map((c) => c.id)).toEqual(['cert_2', 'cert_1']);
+  });
+
   it('imports a full backup JSON containing both Career Vault and all saved resumes', async () => {
     localStorage.removeItem('ats-resume-builder:saved-resumes');
     const vs = TestBed.inject(VaultService);

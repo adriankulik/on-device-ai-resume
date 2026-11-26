@@ -28,24 +28,59 @@ export class ExtensionService {
       (window.location.search.includes('tab=') || window.location.search.includes('print=')),
   );
 
+  private popupWindow: Window | null = null;
+  private openingPopup = false;
+
   /**
    * Opens the application in a standalone popup window so the user keeps continuity
-   * with their active job-board tab and side panel.
+   * with their active job-board tab and side panel. Reuses and focuses an already-open
+   * popup window instead of opening duplicates.
    */
-  openInNewTab(query = 'tab=preview'): void {
-    if (this.isExtension()) {
-      const url = chrome.runtime.getURL(`index.html?${query}`);
-      if (chrome.windows?.create) {
-        chrome.windows.create({ url, type: 'popup', width: 960, height: 860 });
+  async openInNewTab(query = 'tab=preview'): Promise<void> {
+    if (this.openingPopup) return;
+    this.openingPopup = true;
+    try {
+      if (this.isExtension()) {
+        const baseUrl = chrome.runtime.getURL('index.html');
+        const url = `${baseUrl}?${query}`;
+
+        if (chrome.tabs?.query) {
+          try {
+            const tabs = await chrome.tabs.query({ url: `${baseUrl}*` });
+            const existing = tabs.find((t) => t.url?.includes('tab=') && t.id !== undefined);
+            if (existing?.id !== undefined) {
+              if (existing.windowId !== undefined && chrome.windows?.update) {
+                await chrome.windows.update(existing.windowId, { focused: true });
+              }
+              if (chrome.tabs.update) {
+                await chrome.tabs.update(existing.id, { active: true });
+              }
+              return;
+            }
+          } catch {
+            // Fall through to creating a new window if querying tabs fails
+          }
+        }
+
+        if (chrome.windows?.create) {
+          await chrome.windows.create({ url, type: 'popup', width: 960, height: 860 });
+          return;
+        }
+        if (chrome.tabs?.create) {
+          await chrome.tabs.create({ url });
+          return;
+        }
+      }
+
+      if (this.popupWindow && !this.popupWindow.closed) {
+        this.popupWindow.focus();
         return;
       }
-      if (chrome.tabs?.create) {
-        chrome.tabs.create({ url });
-        return;
-      }
+      const url = window.location.href.split('?')[0] + (query ? `?${query}` : '');
+      this.popupWindow = window.open(url, 'on-device-ai-resume', 'popup=yes,width=960,height=860');
+    } finally {
+      this.openingPopup = false;
     }
-    const url = window.location.href.split('?')[0] + (query ? `?${query}` : '');
-    window.open(url, 'on-device-ai-resume', 'popup=yes,width=960,height=860,noopener,noreferrer');
   }
 
   /**
